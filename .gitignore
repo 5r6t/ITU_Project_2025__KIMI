@@ -9,6 +9,4 @@ frontend/package-lock.json
 frontend/README.md 
 frontend/vite.config.js
 frontend/package.json
-frontend/index.html
-
 backend/__pycache__

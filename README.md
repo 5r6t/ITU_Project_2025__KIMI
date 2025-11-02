@@ -12,6 +12,7 @@ GUI oriented project from ITU (User Interface Programming) class
 - installer should add `npm` to PATH
 - general libs `npm install`
 - HTTP `npm install axios`
+- `npm install react-router-dom`
 
 # Create React project with Vite
 `npm create vite@latest frontend -- --template react`
