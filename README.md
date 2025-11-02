@@ -11,11 +11,11 @@ GUI oriented project from ITU (User Interface Programming) class
 - download https://nodejs.org/en/download
 - installer should add `npm` to PATH
 - general libs `npm install`
-- HTTP `npm install axios`
-- `npm install react-router-dom`
+- ~~HTTP `npm install axios`~~
+- ~~`npm install react-router-dom`~~
 
-# Create React project with Vite
-`npm create vite@latest frontend -- --template react`
+# ~~Create React project with Vite~~
+~~`npm create vite@latest frontend -- --template react`~~
 ## 1) Run Backend
 `cd backend`
 `python server.py`
