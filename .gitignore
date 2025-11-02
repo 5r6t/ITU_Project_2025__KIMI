@@ -1,4 +1,12 @@
 .dist
 .vscode
-node_modules
-__pycache__/
+
+frontend/node_modules
+frontend/public
+frontend/.gitignore
+frontend/eslint.config.js
+frontend/package-lock.json
+frontend/README.md 
+frontend/vite.config.js
+frontend/package.json
+backend/__pycache__
