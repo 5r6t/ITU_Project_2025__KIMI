@@ -7,11 +7,14 @@ export default function Pinball() {
   const [score, setScore] = useState(0)
 
   useEffect(() => {
-    const width = 600
-    const height = 800
+
+    // Window size
+    const width = 1600
+    const height = width / 2
+
+    // Physics engine
     const engine = engineRef.current
     const world = engine.world
-    engine.gravity.y = 1.2
 
     // Canvas renderer
     const render = Render.create({
@@ -27,30 +30,88 @@ export default function Pinball() {
     Render.run(render)
     const runner = Runner.create()
     Runner.run(runner, engine)
+    // 120 FPS
+    runner.delta = 1000 / 120;
 
-    // Hrací plocha – stěny
-    const wallOptions = { isStatic: true, render: { fillStyle: '#1f2a44' } }
-    const walls = [
-      //Bodies.rectangle(width / 2, height + 30, width, 60, wallOptions),         // spodek
-      Bodies.rectangle(width / 2, -30, width, 60, wallOptions),                  // vršek
-      Bodies.rectangle(-30, height / 2, 60, height, wallOptions),                // levá
-      Bodies.rectangle(width + 30, height / 2, 60, height, wallOptions)          // pravá
+    // Border walls
+    const borderOptions = { isStatic: true, render: { fillStyle: '#000000ff' } }
+    const borderWidth = width * 1 / 40
+    const borderOffsetFromEdge = width * 1 / 80
+    const borders = [
+      // Bottom - disabled for reset zone
+      // Bodies.rectangle(width / 2, height + borderOffsetFromEdge, width, borderWidth, borderOptions),
+      // Top
+      Bodies.rectangle(width / 2, -borderOffsetFromEdge, width, borderWidth, borderOptions),
+      // Left
+      Bodies.rectangle(-borderOffsetFromEdge, height / 2, borderWidth, height, borderOptions),
+      // Right
+      Bodies.rectangle(width + borderOffsetFromEdge, height / 2, borderWidth, height, borderOptions)
     ]
 
-    const resetZone = Bodies.rectangle(width / 2, height + 30, width, 60, {
+    // Reset zone at the bottom
+    const resetZone = Bodies.rectangle(width / 2, height + borderOffsetFromEdge, width, borderWidth, {
       isStatic: true,
-      isSensor: true,  // nekoliduje, len detekuje
-      render: { visible: false }
+      isSensor: true,
+      render: { fillStyle: '#ff0000ff' }
     })
 
+    // Side slopes
+    const slopeOptions = { isStatic: true, render: { fillStyle: '#24324f' } }
+    const slopeLength = width * 1 / 4
+    const slopeWidth = width * 1 / 80
+    const slopes = [
+      Bodies.rectangle(width * 1 / 4, height * 3 / 4, slopeLength, slopeWidth, { ...slopeOptions, angle: 0.4 }),
+      Bodies.rectangle(width * 3 / 4, height * 3 / 4, slopeLength, slopeWidth, { ...slopeOptions, angle: -0.4 }),
+      Bodies.rectangle(width * 0.8 / 8, height * 2.72 / 4, slopeLength, slopeWidth, { ...slopeOptions, angle: 0.4 }),
+      Bodies.rectangle(width * 7.2 / 8, height * 2.72 / 4, slopeLength, slopeWidth, { ...slopeOptions, angle: -0.4 }),
+      Bodies.rectangle(width * 1 / 4, height * 1.2 / 4, slopeWidth, slopeLength, { ...slopeOptions }),
+      Bodies.rectangle(width * 3 / 4, height * 1.2 / 4, slopeWidth, slopeLength, { ...slopeOptions })
+    ]
 
-    // Mírně šikmé boční hrany dole, aby míček padal na flippery
-    const slopeOpts = { isStatic: true, angle: 0.3, render: { fillStyle: '#24324f' } }
-    const leftSlope  = Bodies.rectangle(75, 690, 160, 20, { ...slopeOpts, angle: 0.25 })
-    const rightSlope = Bodies.rectangle(520, 690, 160, 20, { ...slopeOpts, angle: -0.25 })
+    // Bumpers
+    const bumperOptions = { isStatic: true, restitution: 1.2, render: { fillStyle: '#ffff00' } }
+    const bumperSize = width * 1 / 40
+    const bumpers = [ 
+      Bodies.circle(width * 2 / 5, height * 2 / 5, bumperSize, bumperOptions),
+      Bodies.circle(width * 1 / 2, height * 1 / 5, bumperSize, bumperOptions),
+      Bodies.circle(width * 3 / 5, height * 2 / 5, bumperSize, bumperOptions)
+    ]
+    // Score – add points when hitting a bumper
+    const scoreOnCollision = (event) => {
+      for (const pair of event.pairs) {
+        const labels = [pair.bodyA, pair.bodyB].map(b => b.label)
+        const isBumperHit =
+          bumpers.some(b => b.id === pair.bodyA.id || b.id === pair.bodyB.id)
+        if (isBumperHit) setScore(s => s + 10)
+      }
+    }
+    Events.on(engine, 'collisionStart', scoreOnCollision)
 
-    // 
+    // Ball
+    const ballRadius = width * 1 / 160
+    const ballSpawn = { x: width * 5 / 6 + width * 1 / 80, y: height / 2 }
+    const ball = Bodies.circle(ballSpawn.x, ballSpawn.y, ballRadius, {
+      density: 1,
+      friction: 0,
+      frictionAir: 0.01,
+      restitution: 0.618,
+      render: { fillStyle: '#ffffff' }
+    })
+    // Reset the ball if it falls into the reset zone
+    Events.on(engine, 'collisionStart', (event) => {
+    for (const pair of event.pairs) {
+      if (
+        (pair.bodyA === ball && pair.bodyB === resetZone) ||
+        (pair.bodyB === ball && pair.bodyA === resetZone)
+      ) {
+        // Reset lopty
+        Body.setPosition(ball, { x: ballSpawn.x, y: ballSpawn.y })
+        Body.setVelocity(ball, { x: 0, y: 0 })
+      }
+      }
+    })
 
+    // Cannon (ball launcher)
     function makeCurvedExit({
       startX,
       startY,
@@ -77,10 +138,9 @@ export default function Pinball() {
       }
       return parts
     }
-
     const curve_top = makeCurvedExit({
-      startX: 470,
-      startY: 160,
+      startX: width * 4.7 / 6,
+      startY: height * 0.6 / 4,
       segments: 11,
       segmentLength: 25,
       radius: 120,
@@ -88,156 +148,122 @@ export default function Pinball() {
       angleStep: 0.1,
       color: '#24324f'
     })
-
     const cannon = [
-      Bodies.rectangle(590, 415, 530, 20, { ...slopeOpts, angle: 1.571 }),   //  prava stena
-      Bodies.rectangle(540, 445, 500, 20, { ...slopeOpts, angle: 1.571 }),  //  lava stena
+      Bodies.rectangle(width * 5 / 6, height / 2.5, height / 2, width * 1 / 80, { ...slopeOptions, angle: 1.571 }),   //  prava stena
+      Bodies.rectangle(width * 5 / 6 + width * 1 / 40, height / 2.5, height / 2, width * 1 / 80, { ...slopeOptions, angle: 1.571 }),  //  lava stena
       ...curve_top
     ]
 
-    // Bumpery (body za náraz)
-    const bumpOpts = { isStatic: true, restitution: 1.2, render: { fillStyle: '#ffda2a' } }
-    const bumpers = [ 
-      Bodies.circle(200, 200, 22, bumpOpts),
-      Bodies.circle(300, 260, 22, bumpOpts),
-      Bodies.circle(400, 200, 22, bumpOpts)
-    ]
-
-    // Flippery
-    const flipperLen = 120, flipperThick = 20, flipperY = 720
-    const flipperOpts = {
-        chamfer: 10,
-        density: 0.002,
-        friction: 0,
-        frictionAir: 0.01,
-        render: { fillStyle: '#28e1fa' }
-    }
-
-    const leftFlipper  = Bodies.rectangle(0, flipperY, flipperLen, flipperThick, { ...flipperOpts, angle: -0.25 })
-    const rightFlipper = Bodies.rectangle(0, flipperY, flipperLen, flipperThick, { ...flipperOpts, angle: 0.25 })
-
-    // Klouby (otočné čepy)
-    const leftPivot  = Constraint.create({ 
-        bodyA: leftFlipper,
-        pointA: { x: -50, y: flipperThick/2 },
-        pointB: { x: 160, y: flipperY},
-        length: 0,
-        stiffness: 1
-    });
-    const rightPivot = Constraint.create({
-        bodyA: rightFlipper,
-        pointA: { x: -flipperLen / 2 + 10, y: -flipperThick/2},
-        pointB: { x: 480 - flipperLen / 2 + 10, y: flipperY},
-        length: 0, 
-        stiffness: 1
-    });
-
-    // Míček
-    const spawn_x = 570;
-    const spawn_y = 500;
-    
-    const ball = Bodies.circle(spawn_x, spawn_y, 12, {
-      restitution: 0.9, friction: 0.002, density: 0.003,
-      render: { fillStyle: '#fff' }
+    // Flippers
+    const flipperOptions = { density: 1, friction: 0, frictionAir: 0.1, render: { fillStyle: '#00ff00' } }
+    const flipperLength = width * 1 / 10
+    const flipperWidth = width * 1 / 80
+    const leftFlipperX = width * 3.35 / 8
+    const rightFlipperX = width * 4.65 / 8
+    const flipperY = height * 6.82 / 8
+    const leftFlipper = Bodies.rectangle(leftFlipperX, flipperY, flipperLength, flipperWidth, { ...flipperOptions })
+    const rightFlipper = Bodies.rectangle(rightFlipperX, flipperY, flipperLength, flipperWidth, { ...flipperOptions })
+    // Left flipper hinge
+    const leftFlipperConstraint = Constraint.create({
+      bodyA: leftFlipper,
+      pointA: { x: -flipperLength / 2, y: 0 },
+      pointB: { x: leftFlipperX - flipperLength / 2, y: flipperY },
+      stiffness: 0.5,
+      length: 0
+    })
+    // Right flipper hinge
+    const rightFlipperConstraint = Constraint.create({
+      bodyA: rightFlipper,
+      pointA: { x: flipperLength / 2, y: 0 },
+      pointB: { x: rightFlipperX + flipperLength / 2, y: flipperY },
+      stiffness: 0.5,
+      length: 0
     })
 
+    // Flipper blockers
+    const flipperBlockerOptions = { isStatic: true, render: { fillStyle: '#00ff00' } }
+    const leftFlipperBlocker = Bodies.circle(leftFlipperX + flipperLength / 4, flipperY + 75, flipperWidth / 2, flipperBlockerOptions)
+    const rightFlipperBlocker = Bodies.circle(rightFlipperX - flipperLength / 4, flipperY + 75, flipperWidth / 2, flipperBlockerOptions)
+
+    // Keyboard controls
+    const up = { left: false, right: false }
+    const down = { left: false, right: false }
+    const sleep = (ms) => new Promise(res => setTimeout(res, ms));
+    let leftLocked = false;
+    let rightLocked = false;
+    const onKeyDown = async (e) => {
+      // Left flipper
+      if ((e.code === 'ArrowLeft' || e.code === 'KeyA') && !leftLocked) {
+        leftLocked = true;       // 🔒 Block further press attempts
+        up.left = true;        // activate flipper
+        await sleep(100);        // wait 0.1 s while flipper goes up
+        up.left = false;       // deactivate flipper
+        down.left = true;     // activate flipper down
+        await sleep(50);       // wait 0.05 s while flipper goes down
+        down.left = false;    // deactivate flipper down
+        await sleep(350);       // wait a bit before unlocking
+        leftLocked = false;      // 🔓 Unblock
+      }
+      // Right flipper
+      if ((e.code === 'ArrowRight' || e.code === 'KeyD') && !rightLocked) {
+        rightLocked = true;
+        up.right = true;
+        await sleep(100);
+        up.right = false;
+        down.right = true;
+        await sleep(50);
+        down.right = false;
+        await sleep(350);
+        rightLocked = false;
+      }
+      // Launch the ball
+      if (e.code === 'Space') {
+        // Launch the ball
+        Body.setVelocity(ball, { x: 0, y: -30 })
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+
+    // Flipper control on each update
+    Matter.Events.on(engine, 'beforeUpdate', () => {
+      const flipperSpeed = 0.25
+      if (up.left) {
+        Body.setAngularVelocity(leftFlipper, -flipperSpeed)
+      }
+      if (down.left) {
+        Body.setAngularVelocity(leftFlipper, flipperSpeed)
+      }
+      if (up.right) {
+        Body.setAngularVelocity(rightFlipper, flipperSpeed)
+      }
+      if (down.right) {
+        Body.setAngularVelocity(rightFlipper, -flipperSpeed)
+      }
+    })
+
+    // Add all static bodies to the world
     Composite.add(world, [
-      ...walls,  resetZone, ...cannon, leftSlope, rightSlope, ...bumpers,
-      leftFlipper, rightFlipper, leftPivot, rightPivot,
-      ball,
+      ...borders, resetZone,
+      ...slopes,
+      ...cannon,
+      leftFlipper, rightFlipper,
+      leftFlipperConstraint, rightFlipperConstraint,
+      leftFlipperBlocker, rightFlipperBlocker,
+      ball, ...bumpers
     ])
 
-    // Skóre – přičti body při nárazu do bumperu
-    const scoreOnCollision = (event) => {
-      for (const pair of event.pairs) {
-        const labels = [pair.bodyA, pair.bodyB].map(b => b.label)
-        const isBumperHit =
-          bumpers.some(b => b.id === pair.bodyA.id || b.id === pair.bodyB.id)
-        if (isBumperHit) setScore(s => s + 10)
-      }
-    }
-    Events.on(engine, 'collisionStart', scoreOnCollision)
-
-    // Ovládání – švih flipperů
-    const maxLeftUp  = -1        // ľavý hore
-    const maxLeftDown = 0.25     // ľavý dole
-    const maxRightUp = -2.1      // pravý hore
-    const maxRightDown = -3.4   // pravý dole
-
-    Events.on(engine, 'beforeUpdate', () => {
-      if (leftFlipper.angle < maxLeftUp) {
-        Body.setAngularVelocity(leftFlipper, 0)
-        Body.setAngle(leftFlipper, maxLeftUp)
-      }
-      if (leftFlipper.angle > maxLeftDown) {
-        Body.setAngularVelocity(leftFlipper, 0)
-        Body.setAngle(leftFlipper, maxLeftDown)
-      }
-
-      if (rightFlipper.angle > maxRightUp) {
-        Body.setAngularVelocity(rightFlipper, 0)
-        Body.setAngle(rightFlipper, maxRightUp)
-      }
-      if (rightFlipper.angle < maxRightDown) {
-        Body.setAngularVelocity(rightFlipper, 0)
-        Body.setAngle(rightFlipper, maxRightDown)
-      }
-    })
-
-    const max_v = 15;
-    const keyDown = (e) => {
-      if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
-        Body.setAngularVelocity(leftFlipper, -max_v)
-      }
-      if (e.code === 'ArrowRight' || e.code === 'KeyD') {
-        Body.setAngularVelocity(rightFlipper, max_v)
-      }
-      if (e.code === 'Space') {
-        // jednoduchý "plunger": vystřel míček nahoru
-        if (ball.position.x > 540 && ball.position.y > 250) { // iba ak je v kanone
-          Body.setVelocity(ball, { x: 0, y: -30 })
-        }
-      }
-    }
-    const keyUp = (e) => {
-      if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
-        Body.setAngularVelocity(leftFlipper, max_v)
-        Body.setAngle(leftFlipper, maxLeftDown)
-      }
-      if (e.code === 'ArrowRight' || e.code === 'KeyD') {
-        Body.setAngularVelocity(rightFlipper, -max_v)
-        Body.setAngle(rightFlipper, maxRightDown)
-      }
-    }
-    window.addEventListener('keydown', keyDown)
-    window.addEventListener('keyup', keyUp)
-
-    // Reset míčku, když spadne dolů
-    Events.on(engine, 'collisionStart', (event) => {
-    for (const pair of event.pairs) {
-      if (
-        (pair.bodyA === ball && pair.bodyB === resetZone) ||
-        (pair.bodyB === ball && pair.bodyA === resetZone)
-      ) {
-        // Reset lopty
-        Body.setPosition(ball, { x: spawn_x, y: spawn_y })
-        Body.setVelocity(ball, { x: 0, y: 0 })
-      }
-      }
-    })
-
-    // Úklid
+    // Cleanup on unmount
     return () => {
-      window.removeEventListener('keydown', keyDown)
-      window.removeEventListener('keyup', keyUp)
-      Events.off(engine, 'collisionStart', scoreOnCollision)
+      Events.off(engine, 'collisionStart')
+      Events.off(engine, 'beforeUpdate')
+      window.removeEventListener('keydown', onKeyDown)
       Render.stop(render)
       Runner.stop(runner)
       Composite.clear(world, false)
       Engine.clear(engine)
       render.canvas.remove()
       render.textures = {}
-      engineRef.current = Engine.create() // fresh engine pro návrat na stránku
+      engineRef.current = Engine.create() // fresh engine for returning to the page
     }
   }, [])
 
