@@ -5,7 +5,7 @@ import App from './App.jsx'
 
 // 2.11. Pinball things
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Pinball from './Pinball'
+//import Pinball from './Pinball'
 
 // 2.11. Přidání routování na komponenty App a Pinball namísto vykreslení pouze App
 createRoot(document.getElementById('root')).render(
@@ -13,7 +13,7 @@ createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<App />} />
-        <Route path="/pinball" element={<Pinball />} />
+        {/*<Route path="/pinball" element={<Pinball />} />*/}
       </Routes>
     </BrowserRouter>
   </StrictMode>,
