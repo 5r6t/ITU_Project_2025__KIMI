@@ -17,8 +17,28 @@ export default function App() {
 
   useEffect(() => { loadState(); }, []);
 
-  return (
-    <div style={{ textAlign: "center", fontFamily: "sans-serif" }}>
+  
+
+  return (  
+    
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        justifyContent:"center",
+        alignItems:"center",
+
+        padding: "10px",
+        textAlign: "center",
+        fontFamily: "sans-serif",
+        background: "royalblue",
+        height: "100vh",
+      }}
+  >
+      
+      
+      
+      <h1>Kimi Demo</h1>
       {/* 2.11. jednoduchá „navigace“ */}
       <div style={{ marginBottom: 16 }}>
         <Link to="/pinball">
@@ -28,12 +48,12 @@ export default function App() {
         </Link>
       </div>
       {/* 2.11. konec */}
-      
-      <h1>Pou Mini Demo</h1>
       <p>🍗 Hunger: {state.hunger}</p>
       <p>🧼 Clean: {state.clean}</p>
       <p>💤 Energy: {state.energy}</p>
-      <button onClick={feedPou}>Feed Pou 🍗</button>
+      <button onClick={feedPou}>
+        Feed Pou 🍗
+      </button>
     </div>
   );
 }
