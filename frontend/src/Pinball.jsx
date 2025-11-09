@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import Matter, { Engine, Render, Runner, Bodies, Body, Composite, Constraint, Events } from 'matter-js'
+import Header from "./Header";
+import { useNavigate } from 'react-router-dom';
 
 export default function Pinball() {
+  const navigate = useNavigate();
+    const handleClose = () => {
+        navigate("/"); 
+  };
   const sceneRef = useRef(null)
   const engineRef = useRef(Engine.create())
   const [score, setScore] = useState(0)
@@ -268,6 +274,10 @@ export default function Pinball() {
   }, [])
 
   return (
+    <div>
+      <div>
+        <Header title="Pinball" onClose={handleClose} />
+      </div>
     <div style={{ display: 'grid', placeItems: 'center', height: '100vh', color: 'white' }}>
       <div style={{ position: 'relative' }}>
         <div ref={sceneRef} />
@@ -277,5 +287,6 @@ export default function Pinball() {
         </div>
       </div>
     </div>
+  </div>
   )
 }

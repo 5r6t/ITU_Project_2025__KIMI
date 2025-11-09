@@ -4,6 +4,7 @@ import axios from "axios";
 import './App.css';
 
 import StatusBar from "./StatusBar";
+import Header from "./Header";
 
 export default function App() {
   const [state, setState] = useState({ hunger: 0, clean: 0, energy: 0 });
@@ -33,26 +34,19 @@ export default function App() {
     setState(res.data);
   };
 
+  const handleClose = () => {
+    console.log("Header closed!");
+    // navigate away, hide modal, etc.
+  };
+
   useEffect(() => { loadState(); }, []);
 
   return (  
     
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        justifyContent:"center",
-        alignItems:"center",
-
-        padding: "10px",
-        textAlign: "center",
-        fontFamily: "sans-serif",
-        background: "royalblue",
-        height: "100vh",
-      }}
-  >
-      
-      
+    <div className="app-container">
+      <div>
+        <Header title="Kimi Demo" onClose={handleClose} />
+      </div>
       
       <h1>Kimi Demo</h1>
       {/* 2.11. jednoduchá „navigace“ */}
@@ -66,13 +60,11 @@ export default function App() {
       </div>
 
       <div>
-        <button>Check out your achievements</button>
+        <Link to="/achievments">
+          <button>Check out your achievements</button>
+        </Link>
       </div>
 
-      <div>
-
-        
-      </div>
         <button onClick={feedKimi}>
           Feed Kimi 🍗
         </button>
