@@ -155,7 +155,7 @@ def get_creature(creature_id):
             "hunger": row[2],
         }
 
-# handles states so that they don't overflow
+# handles states so that they don't overflow, returns states
 def update_creature_state(creature_id, clean=None, energy=None, hunger=None):
     """Update creature states; automatically clamps values between 0–100."""
     with connect() as con:
@@ -170,13 +170,40 @@ def update_creature_state(creature_id, clean=None, energy=None, hunger=None):
         if hunger is not None:
             hunger = max(0, min(100, hunger))
             cur.execute("UPDATE Creature SET hunger_state=? WHERE creature_id=?", (hunger, creature_id))
+        # fetch updated values before returning
+        cur.execute("""
+            SELECT clean_state, energy_state, hunger_state
+            FROM Creature WHERE creature_id=?;
+        """, (creature_id,))
+        row = cur.fetchone()
 
+        if not row:
+            return None
 
-#### USER ####
+        return {
+            "clean": row[0],
+            "energy": row[1],
+            "hunger": row[2]
+        }
+## DEFAULT ######################################## >>w<<
+DEFAULT_ID = 1
+
+def create_default_creature():
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute(
+            "INSERT OR IGNORE INTO Creature (owner_id) VALUES (?)",
+            (DEFAULT_ID,)
+        )
+    return DEFAULT_ID
+
 def create_default_user():
     with connect() as con:
         cur = con.cursor()
-        cur.execute("INSERT OR IGNORE INTO User (user_id, user_name) VALUES (1, 'Admin');")
+        cur.execute(
+            "INSERT OR IGNORE INTO User (user_id, user_name) VALUES (?, ?)",
+            (DEFAULT_ID, "Admin")
+        )
 
 #### ACHIEVEMENTS ####
 def add_achievement(user_id, name, target=1, progress=0):

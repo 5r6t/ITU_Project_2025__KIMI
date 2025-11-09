@@ -8,9 +8,9 @@ CORS(app)  # povolí Reactu volať API
 
 ADMIN_ID = 1 
 
-init_db()
-create_default_user()
-creature_id = create_creature(owner_id=ADMIN_ID)
+init_db() # INITIALIZE DB (NOTHING HAPPENS IF INITIALIZED)
+create_default_user() # admin, `id`` is 1
+creature_id = create_default_creature() # ``id`` is1
 
 @app.route("/feed", methods=["POST"])
 def feed():
@@ -18,22 +18,39 @@ def feed():
     if not creature:
         return jsonify({"error": "not found"}), 404
 
-    update_creature_state(creature_id, clean=creature["clean"]-5, hunger=creature["hunger"]+10)
-    return jsonify(creature)
+    updated =update_creature_state(creature_id, clean=creature["clean"]-5, hunger=creature["hunger"]+10)
+    return jsonify(updated)
+
+@app.route("/clean", methods=["POST"])
+def clean():
+    creature = get_creature(creature_id)
+    if not creature:
+        return jsonify({"error": "not found"}), 404
+    updated = update_creature_state(creature_id, clean=creature["clean"]+25)
+    return jsonify(updated)  
+
+@app.route("/sleep", methods=["POST"])
+def sleep():
+    creature = get_creature(creature_id)
+    if not creature:
+        return jsonify({"error": "not found"}), 404
+    updated = update_creature_state(creature_id, hunger=creature["hunger"]-15, energy=creature["energy"]+100)
+    return jsonify(updated)  
+
+@app.route("/exercise", methods=["POST"])
+def exercise():
+    creature = get_creature(creature_id)
+    if not creature:
+        return jsonify({"error": "not found"}), 404
+    updated = update_creature_state(creature_id, clean=creature["clean"]-10, energy=creature["energy"]-25)
+    return jsonify(updated)  
 
 @app.route("/state")
 def get_state():
-    row = get_creature(creature_id)
-    if not row:
+    creature = get_creature(creature_id)
+    if not creature:
         return jsonify({"error": "creature not found"}), 404
-
-    clean, energy, hunger = row
-
-    return jsonify({
-        "hunger": hunger,
-        "clean": clean,
-        "energy": energy
-    })
+    return jsonify(creature)
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
