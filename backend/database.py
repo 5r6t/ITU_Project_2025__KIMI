@@ -220,7 +220,7 @@ def create_default_user():
             (DEFAULT_ID, "Admin")
         )
 
-def ensure_default_achievements(user_id):
+def create_default_achievements(user_id):
     defaults = [
         ("First Win", 1),
         ("100 Points", 100),
