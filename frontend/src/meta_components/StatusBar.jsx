@@ -7,7 +7,7 @@ export default function StatusBar({ label, value, color }) {
       <div className="statusbar-track">
         <div
           className="statusbar-fill"
-          style={{ width: `${value}%`, background: color }}
+          style={{ width: `${value}%`, background: color }} // width above 100% stays 100%
         ></div>
       </div>
     </div>

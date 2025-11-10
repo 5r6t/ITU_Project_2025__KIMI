@@ -1,9 +1,9 @@
 .header {
-  position: fixed;
+  position: sticky;
   top: 0;
   left: 0;
   right: 0;
-  height: 50px;
+  height: 65px;
   background: royalblue;
   color: white;
   border-bottom: 2px solid #0b1957;
@@ -24,7 +24,7 @@
 
 .header-title {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.5rem;
   font-weight: 600;
 }
 

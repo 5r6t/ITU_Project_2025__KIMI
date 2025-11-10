@@ -64,6 +64,7 @@ export default function App() {
         <Header title="Kimi Demo" onClose={handleClose} />
       </div>
       
+      <div className="app-container">
       <h1>Kimi Demo</h1>
       {/* 2.11. jednoduchá „navigace“ */}
       <div>
@@ -76,10 +77,16 @@ export default function App() {
       </div>
 
       <div>
-        <Link to="/achievments">
+          <Link to="/achievements">
           <button>Check out your achievements</button>
         </Link>
       </div>
+
+        <div>
+          <Link to="/solitaire">
+            <button>Play Solitaire</button>
+          </Link>
+        </div>
 
         <button onClick={toggleInventory}>
           Inventory 🎒
@@ -100,6 +107,7 @@ export default function App() {
         <StatusBar label="🍗 Hunger" value={state.hunger} color="#D02121" />
         <StatusBar label="🧼 Clean"  value={state.clean}  color="#59E817" />
         <StatusBar label="💤 Energy" value={state.energy} color="#EFE826" />
+        </div>
       </div>
   );
 }
