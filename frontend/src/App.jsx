@@ -4,7 +4,7 @@ import axios from "axios";
 import './App.css';
 import Inventory from "./Inventory";
 
-import StatusBar from "./StatusBar";
+import StatusBar from "./meta_components/StatusBar";
 import Header from "./meta_components/Header";
 
 export default function App() {
