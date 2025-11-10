@@ -65,6 +65,12 @@ export default function App() {
           </Link>
         </div>
 
+        <div>
+          <Link to="/solitaire">
+            <button>Play Solitaire</button>
+          </Link>
+        </div>
+
           <button onClick={feedKimi}>
             Feed Kimi 🍗
           </button>
