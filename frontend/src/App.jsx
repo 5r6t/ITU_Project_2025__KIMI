@@ -4,7 +4,7 @@ import axios from "axios";
 import './App.css';
 
 import StatusBar from "./StatusBar";
-import Header from "./Header";
+import Header from "./meta_components/Header";
 
 export default function App() {
   const [state, setState] = useState({ hunger: 0, clean: 0, energy: 0 });

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import Matter, { Engine, Render, Runner, Bodies, Body, Composite, Constraint, Events } from 'matter-js'
-import Header from "./Header";
+import Header from "./meta_components/Header";
 import { useNavigate } from 'react-router-dom';
 
 export default function Pinball() {

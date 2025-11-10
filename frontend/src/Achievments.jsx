@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import Header from "./Header";
+import Header from "./meta_components/Header";
+import "./Achievments.css"
 
 export default function Achievments() {
     const navigate = useNavigate();
@@ -10,7 +11,19 @@ export default function Achievments() {
 
   return(
     <div>
-        <Header title="Achievements" onClose={handleClose} />
+    <div>
+      <Header title="Achievements" onClose={handleClose} />
+    </div>
+    <div className="achieve">
+        
+        <div >
+          <p>Unlocked achievements</p>
+        </div>
+
+        <div >
+          <p>Locked achievements</p>
+        </div>
+    </div>
     </div>
   )
 }
