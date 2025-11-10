@@ -3,7 +3,7 @@ import { Link } from "react-router-dom"; // 2.11. Přidání odkazu na Pinball s
 import axios from "axios";
 import './App.css';
 
-import StatusBar from "./StatusBar";
+import StatusBar from "./meta_components/StatusBar";
 import Header from "./meta_components/Header";
 
 export default function App() {
@@ -42,48 +42,49 @@ export default function App() {
   useEffect(() => { loadState(); }, []);
 
   return (  
-    
-    <div className="app-container">
+    <div>
       <div>
-        <Header title="Kimi Demo" onClose={handleClose} />
+          <Header title="Kimi Demo" onClose={handleClose} />
       </div>
-      
-      <h1>Kimi Demo</h1>
-      {/* 2.11. jednoduchá „navigace“ */}
-      <div>
-        
-        <Link to="/pinball">
-          <button>
-            Spustit Pinball 🎮
+
+      <div className="app-container">
+        <h1>Kimi Demo</h1>
+        {/* 2.11. jednoduchá „navigace“ */}
+        <div>
+          
+          <Link to="/pinball">
+            <button>
+              Spustit Pinball 🎮
+            </button>
+          </Link>
+        </div>
+
+        <div>
+          <Link to="/achievements">
+            <button>Check out your achievements</button>
+          </Link>
+        </div>
+
+          <button onClick={feedKimi}>
+            Feed Kimi 🍗
           </button>
-        </Link>
-      </div>
 
-      <div>
-        <Link to="/achievments">
-          <button>Check out your achievements</button>
-        </Link>
-      </div>
+          <button onClick={cleanKimi}>
+            Clean Kimi 🧼
+          </button>
 
-        <button onClick={feedKimi}>
-          Feed Kimi 🍗
-        </button>
+          <button onClick={energizeKimi}>
+            Make Kimi sleep 💤
+          </button>
 
-        <button onClick={cleanKimi}>
-          Clean Kimi 🧼
-        </button>
+          <button onClick={exerciseKimi}>
+            Make Kimi exercise ⚡
+          </button>
 
-        <button onClick={energizeKimi}>
-          Make Kimi sleep 💤
-        </button>
-
-        <button onClick={exerciseKimi}>
-          Make Kimi exercise ⚡
-        </button>
-
-        <StatusBar label="🍗 Hunger" value={state.hunger} color="#D02121" />
-        <StatusBar label="🧼 Clean"  value={state.clean}  color="#59E817" />
-        <StatusBar label="💤 Energy" value={state.energy} color="#EFE826" />
+          <StatusBar label="🍗 Hunger" value={state.hunger} color="#D02121" />
+          <StatusBar label="🧼 Clean"  value={state.clean}  color="#59E817" />
+          <StatusBar label="💤 Energy" value={state.energy} color="#EFE826" />
+        </div>
       </div>
   );
 }

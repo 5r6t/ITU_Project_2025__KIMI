@@ -1,7 +1,14 @@
+:root{
+    overflow: hidden;           /* hide scrollbar */
+  
+  margin: 0; 
+  box-sizing: border-box;
+}
+
 .app-container {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
 
   padding: 10px;
@@ -10,10 +17,8 @@
 
   background: royalblue;
   height: 100vh;
-  /* fix scrollbar issue */
-  overflow: hidden;           /* hides unwanted scrollbar */
-  margin: 0;                  /* reset any default spacing */
-  box-sizing: border-box;     /* safe sizing */
+
+
 }
 
 button {
