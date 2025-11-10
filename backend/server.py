@@ -31,6 +31,10 @@ add_to_inventory(ADMIN_ID, energy_drink_id, 3)
 
 ensure_pinball_row(ADMIN_ID)   # ensure pinball row for admin user
 
+# see get_achievements api
+create_default_achievements(ADMIN_ID)
+data = list_achievements(ADMIN_ID)
+
 @app.route("/feed", methods=["POST"])
 def feed():
     creature = get_creature(creature_id)
@@ -152,8 +156,7 @@ def pinball_reset_record():
 # --- Achievements ----
 @app.route("/achievements")
 def get_achievements():
-    ensure_default_achievements(ADMIN_ID)
-    data = list_achievements(ADMIN_ID)
+
 
     unlocked = []
     locked = []
