@@ -80,7 +80,6 @@ export default function Achievements() {
   "!!! Start",
 ];
 
-
   return (
     <div>
       <Header title="Achievements" onClose={handleClose} />
