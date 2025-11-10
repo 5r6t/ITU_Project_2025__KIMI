@@ -1,0 +1,44 @@
+.achieve {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+
+  padding: 10px;
+  text-align: center;
+  font-family: sans-serif;
+
+  background: royalblue;
+  height: 100vh;
+
+  /* hide scrollbar */
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+button {
+  padding: "8px 14px";
+  margin-bottom: 16px;
+  font-size: 14pt;
+}
+
+.achievement-card {
+  border-radius: 8px;
+  padding: 12px;
+  width: 100%;
+  max-width: 240px;
+
+  text-align: center;
+  color: #000;
+  font-weight: bold;
+  word-wrap: break-word;
+  
+  background: #FFC117;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.achievement-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}

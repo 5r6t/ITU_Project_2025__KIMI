@@ -247,12 +247,17 @@ def update_achievement_progress(achvmnt_id, new_progress):
         """, (new_progress, achvmnt_id))
 
 #### INVENTORY ####
-def add_ingredient(name):
-    """Add a new ingredient type."""
+def clean_inventory(user_id):
+    """Odstraní všechny položky z inventáře daného uživatele, jejichž množství je <= 0."""
     with connect() as con:
         cur = con.cursor()
-        cur.execute("INSERT INTO Ingredient (ingredient_name) VALUES (?)", (name,))
-        return cur.lastrowid
+        # Smaže všechny záznamy z Inventory, kde je quantity 0 nebo méně pro daného uživatele
+        con.execute("""
+            DELETE FROM Inventory
+            WHERE user_id = ?;
+        """, (user_id,))
+        # Vrátí počet smazaných řádků
+        return cur.rowcount
 
 def list_ingredients():
     """List all available ingredient types."""
@@ -260,6 +265,23 @@ def list_ingredients():
         cur = con.cursor()
         cur.execute("SELECT ingredient_id, ingredient_name FROM Ingredient;")
         return cur.fetchall()
+    
+def add_ingredient(name):
+    """Add a new ingredient type or return existing ID."""
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("INSERT OR IGNORE INTO Ingredient (ingredient_name) VALUES (?)", (name,))
+        cur.execute("SELECT ingredient_id FROM Ingredient WHERE ingredient_name=?", (name,))
+        row = cur.fetchone()
+        return row[0] if row else None 
+
+def get_ingredient_by_name(name):
+    """Retrieve ingredient_id by name."""
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("SELECT ingredient_id FROM Ingredient WHERE ingredient_name=?", (name,))
+        row = cur.fetchone()
+        return row[0] if row else None
 
 def add_to_inventory(user_id, ingredient_id, amount):
     """Increase quantity of ingredient in user's inventory."""
@@ -272,26 +294,53 @@ def add_to_inventory(user_id, ingredient_id, amount):
         """, (user_id, ingredient_id, amount))
 
 def remove_from_inventory(user_id, ingredient_id, amount):
-    """Decrease quantity of ingredient, not below 0."""
+    """
+    Sníží množství předmětu a SMAŽE řádek, pokud množství klesne na 0 nebo méně.
+    """
     with connect() as con:
-        cur = con.cursor()
-        cur.execute("""
+        # Krok 1: Snížení množství, ne pod 0
+        con.execute("""
             UPDATE Inventory
             SET quantity = MAX(quantity - ?, 0)
             WHERE user_id=? AND ingredient_id=?;
         """, (amount, user_id, ingredient_id))
+        
+        # Krok 2: Odstranění řádku, pokud je množství <= 0
+        con.execute("""
+            DELETE FROM Inventory
+            WHERE user_id=? AND ingredient_id=? AND quantity <= 0;
+        """, (user_id, ingredient_id))
+
+        # Krok 3: Vrátí aktuální množství (0, pokud bylo odstraněno)
+        cur = con.cursor()
+        cur.execute("SELECT quantity FROM Inventory WHERE user_id=? AND ingredient_id=?", (user_id, ingredient_id))
+        row = cur.fetchone()
+        return row[0] if row else 0
 
 def get_inventory(user_id):
-    """Get all items and quantities in user's inventory."""
+    """Get all items and quantities in user's inventory (quantity > 0) as a list of dicts."""
     with connect() as con:
         cur = con.cursor()
         cur.execute("""
-            SELECT Ingredient.ingredient_name, Inventory.quantity
+            SELECT 
+                Ingredient.ingredient_id,  -- Index 0
+                Ingredient.ingredient_name,  -- Index 1
+                Inventory.quantity  -- Index 2
             FROM Inventory
             JOIN Ingredient ON Inventory.ingredient_id = Ingredient.ingredient_id
-            WHERE Inventory.user_id=?;
+            WHERE Inventory.user_id=? AND Inventory.quantity > 0;
         """, (user_id,))
-        return cur.fetchall()
+        
+        rows = cur.fetchall()
+        
+        inventory_list = []
+        for row in rows:
+            inventory_list.append({
+                "id": row[0],
+                "name": row[1],
+                "quantity": row[2]  # Zde MUSÍ být množství
+            })
+        return inventory_list
     
 #### RECIPES ####
 def add_recipe(user_id, name, cook_time=0):
