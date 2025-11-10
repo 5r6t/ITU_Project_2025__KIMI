@@ -10,6 +10,7 @@ import Header from "./meta_components/Header";
 export default function App() {
   const [state, setState] = useState({ hunger: 0, clean: 0, energy: 0 });
   const [showInventory, setShowInventory] = useState(false);
+  const [extensionCatcher, setExtensionCatcher] = useState(false);
 
   const updateKimiState = (newState) => {
       setState(newState);
@@ -49,7 +50,32 @@ export default function App() {
     // navigate away, hide modal, etc.
   };
 
-  useEffect(() => { loadState(); }, []);
+  useEffect(() => {
+    loadState();
+    loadExtensionCatcher();
+  }, []);
+
+  // Loading extension catcher setting
+  const loadExtensionCatcher = async () => {
+    try {
+      const res = await axios.get("http://127.0.0.1:5000/api/v1/pinball/extension_catcher");
+      setExtensionCatcher(res.data.extension_catcher);
+    } catch (err) {
+      console.error("Failed to load extension_catcher:", err);
+    }
+  };
+
+  // Setting (enable/disable)
+  const setExtension = async (enabled) => {
+    try {
+      const res = await axios.post("http://127.0.0.1:5000/api/v1/pinball/extension_catcher", {
+        enabled: enabled,
+      });
+      setExtensionCatcher(res.data.extension_catcher);
+    } catch (err) {
+      console.error("Failed to save extension_catcher:", err);
+    }
+  };
 
   return (  
     
@@ -74,6 +100,14 @@ export default function App() {
             Spustit Pinball 🎮
           </button>
         </Link>
+      </div>
+      <div style={{ marginTop: "8px" }}>
+        <button onClick={() => setExtension(!extensionCatcher)}>
+          Catcher
+        </button>
+        <span style={{ marginLeft: "10px" }}>
+          Stav: <b>{extensionCatcher ? "Zapnuto" : "Vypnuto"}</b>
+        </span>
       </div>
 
       <div>

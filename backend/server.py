@@ -149,5 +149,17 @@ def pinball_reset_record():
     ensure_pinball_row(ADMIN_ID)
     return jsonify(reset_pinball_record(ADMIN_ID))
 
+@app.route("/api/v1/pinball/extension_catcher", methods=["GET"])
+def ext_catcher_get():
+    ensure_pinball_row(ADMIN_ID)
+    return jsonify(get_extension_catcher(ADMIN_ID))
+
+@app.route("/api/v1/pinball/extension_catcher", methods=["POST"])
+def ext_catcher_post():
+    ensure_pinball_row(ADMIN_ID)
+    data = request.get_json(force=True) or {}
+    enabled = bool(data.get("enabled", False))
+    return jsonify(set_extension_catcher(ADMIN_ID, enabled))
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

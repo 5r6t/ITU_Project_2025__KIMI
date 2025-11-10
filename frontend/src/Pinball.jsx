@@ -3,9 +3,17 @@ import Matter, { Engine, Render, Runner, Bodies, Body, Composite, Constraint, Ev
 import Header from "./meta_components/Header";
 import { useNavigate } from 'react-router-dom';
 import axios from "axios";
+
 const API = axios.create({ baseURL: "http://127.0.0.1:5000/api/v1" });
 
-export default function Pinball({ catcherEnabled }) {
+// Sound effect helper
+const playSound = (src, volume = 1.0) => {
+  const audio = new Audio(src);
+  audio.volume = volume;
+  audio.play().catch(() => {});
+};
+
+export default function Pinball() {
   const navigate = useNavigate();
     const handleClose = () => {
         navigate("/"); 
@@ -14,6 +22,12 @@ export default function Pinball({ catcherEnabled }) {
   const engineRef = useRef(Engine.create())
   const [score, setScore] = useState(0)
   const [record, setRecord] = useState(0)
+
+  // Refs for Matter objects (we will add/remove them)
+  const [extCatcher, setExtCatcher] = useState(false);
+  const catcherRef = useRef(null);
+  const catcherConstraintRef = useRef(null);
+  const catcherHolderRef = useRef(null);
 
   // Reset record function
   const resetRecord = async () => {
@@ -33,6 +47,14 @@ export default function Pinball({ catcherEnabled }) {
       const { data } = await API.get("/pinball/state");
       setScore(data.score);   // můžeš držet i record ve vlastním useState
       setRecord(data.record);
+
+      // Fetch extension_catcher
+      try {
+        const ext = await API.get("/pinball/extension_catcher");
+        setExtCatcher(!!ext.data.extension_catcher);
+      } catch (e) {
+        console.warn("GET /pinball/extension_catcher failed", e);
+      }
     })();
 
     // Window size
@@ -110,12 +132,13 @@ export default function Pinball({ catcherEnabled }) {
           bumpers.some(b => b.id === pair.bodyA.id || b.id === pair.bodyB.id);
         if (isBumperHit) {
           const { data } = await API.post("/pinball/hit", { points: 10 });
+          playSound("/sounds/Boom.mp3", 0.2);
           setScore(data.score);
           setRecord(data.record); // If it got overwritten (e.g., server might add bonuses)
         }
       }
     };
-  Events.on(engine, 'collisionStart', scoreOnCollision);
+    Events.on(engine, 'collisionStart', scoreOnCollision);
 
     // Ball
     const ballRadius = width * 1 / 160
@@ -255,13 +278,16 @@ export default function Pinball({ catcherEnabled }) {
         rightLocked = false;
       }
       // Launch the ball
-      if (e.code === 'Space') {
+      if (e.code === 'Space' &&
+      (ball.position.x > width * 9 / 12 && ball.position.x < width * 11 / 12
+        && ball.position.y > height / 2 && ball.position.y < height * 3 / 4))
+      {
         Body.setVelocity(ball, { x: 0, y: -30 })
       }
       // Catcher
-      if (e.code === 'KeyS' && !catcherLocked) {
+      if (e.code === 'KeyS' && !catcherLocked && catcherRef.current) {
         catcherLocked = true;
-        Body.setVelocity(catcher, { x: 0, y: -30 })
+        Body.setVelocity(catcherRef.current, { x: 0, y: -30 })
         await sleep(3000); // catcher up for 3 seconds
         catcherLocked = false;
       }
@@ -269,33 +295,14 @@ export default function Pinball({ catcherEnabled }) {
     window.addEventListener('keydown', onKeyDown)
 
     // Flipper control on each update
-    Matter.Events.on(engine, 'beforeUpdate', () => {
-      const flipperSpeed = 0.25
-      if (up.left) {
-        Body.setAngularVelocity(leftFlipper, -flipperSpeed)
-      }
-      if (down.left) {
-        Body.setAngularVelocity(leftFlipper, flipperSpeed)
-      }
-      if (up.right) {
-        Body.setAngularVelocity(rightFlipper, flipperSpeed)
-      }
-      if (down.right) {
-        Body.setAngularVelocity(rightFlipper, -flipperSpeed)
-      }
-    })
-
-    // Catcher between flippers
-    const catcher = Bodies.rectangle(width / 2, flipperY + 150, (rightFlipperX - leftFlipperX) / 3, borderWidth / 2, { mass: 1000, render: { fillStyle: '#00ffff' } })
-    Body.setInertia(catcher, Infinity);
-    // Catcher constraint for the catcher
-    const catcherConstraint = Constraint.create({
-      bodyA: catcher,
-      pointA: { x: 0, y: 0 },
-      pointB: { x: width / 2, y: flipperY + 150 },
-      stiffness: 0.001
-    })
-    const catcherHolder = Bodies.rectangle(width / 2, flipperY + 200, (rightFlipperX - leftFlipperX) / 3, borderWidth / 2, { isStatic: true, render: { fillStyle: '#000000' } })
+    const beforeUpdate = () => {
+      const flipperSpeed = 0.25;
+      if (up.left)  Body.setAngularVelocity(leftFlipper, -flipperSpeed);
+      if (down.left) Body.setAngularVelocity(leftFlipper,  flipperSpeed);
+      if (up.right) Body.setAngularVelocity(rightFlipper,  flipperSpeed);
+      if (down.right) Body.setAngularVelocity(rightFlipper, -flipperSpeed);
+    };
+    Events.on(engine, 'beforeUpdate', beforeUpdate);
 
     // Add all static bodies to the world
     Composite.add(world, [
@@ -306,14 +313,26 @@ export default function Pinball({ catcherEnabled }) {
       leftFlipperConstraint, rightFlipperConstraint,
       leftFlipperBlocker, rightFlipperBlocker,
       ball, ...bumpers,
-      catcher, catcherConstraint, catcherHolder
     ])
 
     // Cleanup on unmount
     return () => {
+      // Remove catcher objects if they exist
+      if (catcherRef.current) {
+        Composite.remove(world, catcherRef.current);
+        catcherRef.current = null;
+      }
+      if (catcherConstraintRef.current) {
+        Composite.remove(world, catcherConstraintRef.current);
+        catcherConstraintRef.current = null;
+      }
+      if (catcherHolderRef.current) {
+        Composite.remove(world, catcherHolderRef.current);
+        catcherHolderRef.current = null;
+      }
       Events.off(engine, 'collisionStart', scoreOnCollision);
       Events.off(engine, 'collisionStart', ballResetOnCollision);
-      Events.off(engine, 'beforeUpdate')
+      Events.off(engine, 'beforeUpdate', beforeUpdate);
       window.removeEventListener('keydown', onKeyDown)
       Render.stop(render)
       Runner.stop(runner)
@@ -321,29 +340,96 @@ export default function Pinball({ catcherEnabled }) {
       Engine.clear(engine)
       render.canvas.remove()
       render.textures = {}
-      engineRef.current = Engine.create() // fresh engine for returning to the page
+      engineRef.current = Engine.create() // Fresh engine for returning to the page
     }
   }, [])
+
+  useEffect(() => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    const world = engine.world;
+
+    // When there is no catcher and it should be enabled → create it
+    if (extCatcher && !catcherRef.current) {
+      const cW = ( (1600 * 4.65/8) - (1600 * 3.35/8) ) / 3;
+      const width = 1600;
+      const height = width / 2;
+      const flipperY = height * 6.82 / 8;
+
+      const catcher = Bodies.rectangle(width / 2, flipperY + 150, cW, (width * 1/40) / 2, { mass: 1000, render: { fillStyle: '#00ffff' } });
+      Body.setInertia(catcher, Infinity);
+
+      const catcherConstraint = Constraint.create({
+        bodyA: catcher,
+        pointA: { x: 0, y: 0 },
+        pointB: { x: width / 2, y: flipperY + 150 },
+        stiffness: 0.001
+      });
+
+      const catcherHolder = Bodies.rectangle(width / 2, flipperY + 200, cW, (width * 1/40) / 2, {
+        isStatic: true, render: { fillStyle: '#000000' }
+      });
+
+      Composite.add(world, [catcher, catcherConstraint, catcherHolder]);
+      catcherRef.current = catcher;
+      catcherConstraintRef.current = catcherConstraint;
+      catcherHolderRef.current = catcherHolder;
+    }
+
+    // When there is a catcher and it should be disabled → remove it
+    if (!extCatcher && catcherRef.current) {
+        Composite.remove(world, catcherRef.current);
+        Composite.remove(world, catcherConstraintRef.current);
+        Composite.remove(world, catcherHolderRef.current);
+        catcherRef.current = null;
+        catcherConstraintRef.current = null;
+        catcherHolderRef.current = null;
+      }
+  }, [extCatcher]);
 
   return (
     <div>
       <div>
         <Header title="Pinball" onClose={handleClose} />
       </div>
-    <div style={{ display: 'grid', placeItems: 'center', height: '100vh', color: 'white' }}>
-      <div style={{ position: 'relative' }}>
-        <div ref={sceneRef} />
-        <div style={{ position:'absolute', top:8, left:8, padding:'6px 10px', background:'#0008', borderRadius:8 }}>
-          <strong>Skóre:</strong> {score} &nbsp; | &nbsp;
-          <strong>Rekord:</strong> {record}
-          &nbsp; | &nbsp; ⬅️/A &nbsp; ➡️/D — flippery, Space — vystřelit
-          &nbsp;&nbsp;
-          <button onClick={resetRecord} style={{ padding:'2px 8px', marginLeft:8 }}>
-            Reset rekord
-          </button>
+      <div
+        style={{
+          display: 'grid',
+          placeItems: 'center',
+          height: '100vh',
+          color: 'white',
+        }}
+      >
+        <div style={{ position: 'relative' }}>
+          <div ref={sceneRef} />
+          <div
+            style={{
+              position: 'absolute',
+              top: 8,
+              left: 8,
+              padding: '6px 10px',
+              background: '#0008',
+              borderRadius: 8,
+            }}
+          >
+            <strong>Skóre:</strong> {score} &nbsp; | &nbsp;
+            <strong>Rekord:</strong> {record}
+            &nbsp; | &nbsp; ⬅️/A &nbsp; ➡️/D — flippery, Space — vystřelit
+            {extCatcher && (
+              <>
+                &nbsp; | &nbsp; S — catcher
+              </>
+            )}
+            &nbsp;&nbsp;
+            <button
+              onClick={resetRecord}
+              style={{ padding: '2px 8px', marginLeft: 8 }}
+            >
+              Reset rekord
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-  )
+  );
 }

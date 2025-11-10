@@ -101,6 +101,7 @@ def init_db():
                 user_id INTEGER PRIMARY KEY,
                 score   INTEGER DEFAULT 0,
                 record  INTEGER DEFAULT 0,
+                extension_catcher BOOLEAN DEFAULT 0,
                 FOREIGN KEY (user_id) REFERENCES User(user_id)
             );
         """)
@@ -439,3 +440,23 @@ def reset_pinball_record(user_id: int):
         cur.execute("SELECT score, record FROM Pinball WHERE user_id=?", (user_id,))
         row = cur.fetchone()
         return {"score": row[0], "record": row[1]}
+    
+def set_extension_catcher(user_id: int, enabled: bool):
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute(
+            "UPDATE Pinball SET extension_catcher=? WHERE user_id=?",
+            (1 if enabled else 0, user_id),
+        )
+        con.commit()
+        return {"extension_catcher": bool(enabled)}
+
+def get_extension_catcher(user_id: int):
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute(
+            "SELECT extension_catcher FROM Pinball WHERE user_id=?",
+            (user_id,),
+        )
+        row = cur.fetchone()
+        return {"extension_catcher": bool(row[0])} if row else {"extension_catcher": False}
