@@ -95,6 +95,16 @@ def init_db():
             );
         """)
 
+        # Pinball scores linked to user
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS Pinball (
+                user_id INTEGER PRIMARY KEY,
+                score   INTEGER DEFAULT 0,
+                record  INTEGER DEFAULT 0,
+                FOREIGN KEY (user_id) REFERENCES User(user_id)
+            );
+        """)
+
     print("Database initialized! ^w^")
 
 #### Delete functions ####
@@ -128,6 +138,10 @@ def remove_all_recipes():
 def remove_whole_inventory():
     with connect() as con:
         con.execute("DELETE FROM Inventory;")
+
+def remove_all_pinball_data():
+    with connect() as con:
+        con.execute("DELETE FROM Pinball;")
 
 #### CREATURE ####
 def create_creature(owner_id, clean=50, energy=50, hunger=50):
@@ -333,3 +347,46 @@ def get_recipe_details(recipe_id):
             "duration": recipe[1],
             "ingredients": ingredients
         }
+
+#### PINBALL ####
+def ensure_pinball_row(user_id):
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("INSERT OR IGNORE INTO Pinball (user_id) VALUES (?)", (user_id,))
+
+def get_pinball_state(user_id):
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("SELECT score, record FROM Pinball WHERE user_id=?", (user_id,))
+        row = cur.fetchone()
+        if not row:
+            return {"score": 0, "record": 0}
+        return {"score": row[0], "record": row[1]}
+
+def add_pinball_points(user_id, points):
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("UPDATE Pinball SET score = score + ? WHERE user_id=?", (points, user_id))
+        cur.execute("SELECT score, record FROM Pinball WHERE user_id=?", (user_id,))
+        score, record = cur.fetchone()
+        return {"score": score, "record": record}
+
+def pinball_ball_lost(user_id):
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("""
+            UPDATE Pinball
+               SET record = CASE WHEN score > record THEN score ELSE record END,
+                   score  = 0
+             WHERE user_id=?""", (user_id,))
+        cur.execute("SELECT score, record FROM Pinball WHERE user_id=?", (user_id,))
+        score, record = cur.fetchone()
+        return {"score": score, "record": record}
+    
+def reset_pinball_record(user_id: int):
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("UPDATE Pinball SET record = 0 WHERE user_id=?", (user_id,))
+        cur.execute("SELECT score, record FROM Pinball WHERE user_id=?", (user_id,))
+        row = cur.fetchone()
+        return {"score": row[0], "record": row[1]}

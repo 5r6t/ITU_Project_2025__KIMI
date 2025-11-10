@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import Matter, { Engine, Render, Runner, Bodies, Body, Composite, Constraint, Events } from 'matter-js'
 import Header from "./meta_components/Header";
 import { useNavigate } from 'react-router-dom';
+import axios from "axios";
+const API = axios.create({ baseURL: "http://127.0.0.1:5000/api/v1" });
 
-export default function Pinball() {
+export default function Pinball({ catcherEnabled }) {
   const navigate = useNavigate();
     const handleClose = () => {
         navigate("/"); 
@@ -11,8 +13,27 @@ export default function Pinball() {
   const sceneRef = useRef(null)
   const engineRef = useRef(Engine.create())
   const [score, setScore] = useState(0)
+  const [record, setRecord] = useState(0)
+
+  // Reset record function
+  const resetRecord = async () => {
+    try {
+      const { data } = await API.post("/pinball/reset_record");
+      setRecord(data.record);
+      setScore(data.score); // beze změny, ale ať je stav konzistentní
+    } catch (e) {
+      console.warn("reset_record failed", e);
+    }
+  };
 
   useEffect(() => {
+
+    // Fetch initial score and record from backend
+    (async () => {
+      const { data } = await API.get("/pinball/state");
+      setScore(data.score);   // můžeš držet i record ve vlastním useState
+      setRecord(data.record);
+    })();
 
     // Window size
     const width = 1600
@@ -83,15 +104,18 @@ export default function Pinball() {
       Bodies.circle(width * 3 / 5, height * 2 / 5, bumperSize, bumperOptions)
     ]
     // Score – add points when hitting a bumper
-    const scoreOnCollision = (event) => {
+    const scoreOnCollision = async (event) => {
       for (const pair of event.pairs) {
-        const labels = [pair.bodyA, pair.bodyB].map(b => b.label)
         const isBumperHit =
-          bumpers.some(b => b.id === pair.bodyA.id || b.id === pair.bodyB.id)
-        if (isBumperHit) setScore(s => s + 10)
+          bumpers.some(b => b.id === pair.bodyA.id || b.id === pair.bodyB.id);
+        if (isBumperHit) {
+          const { data } = await API.post("/pinball/hit", { points: 10 });
+          setScore(data.score);
+          setRecord(data.record); // If it got overwritten (e.g., server might add bonuses)
+        }
       }
-    }
-    Events.on(engine, 'collisionStart', scoreOnCollision)
+    };
+  Events.on(engine, 'collisionStart', scoreOnCollision);
 
     // Ball
     const ballRadius = width * 1 / 160
@@ -103,19 +127,26 @@ export default function Pinball() {
       restitution: 0.618,
       render: { fillStyle: '#ffffff' }
     })
+
     // Reset the ball if it falls into the reset zone
-    Events.on(engine, 'collisionStart', (event) => {
-    for (const pair of event.pairs) {
-      if (
-        (pair.bodyA === ball && pair.bodyB === resetZone) ||
-        (pair.bodyB === ball && pair.bodyA === resetZone)
-      ) {
-        // Reset lopty
-        Body.setPosition(ball, { x: ballSpawn.x, y: ballSpawn.y })
-        Body.setVelocity(ball, { x: 0, y: 0 })
+    const ballResetOnCollision = async (event) => {
+      for (const pair of event.pairs) {
+        if (
+          (pair.bodyA === ball && pair.bodyB === resetZone) ||
+          (pair.bodyB === ball && pair.bodyA === resetZone)
+        ) {
+          // Request backend to complete the round
+          const { data } = await API.post("/pinball/ball_lost");
+          setScore(data.score);     // Update score
+          setRecord(data.record);   // Update record if needed
+
+          // Reset ball position and velocity
+          Body.setPosition(ball, ballSpawn);
+          Body.setVelocity(ball, { x: 0, y: 0 });
+        }
       }
-      }
-    })
+    };
+    Events.on(engine, 'collisionStart', ballResetOnCollision);
 
     // Cannon (ball launcher)
     function makeCurvedExit({
@@ -197,6 +228,7 @@ export default function Pinball() {
     const sleep = (ms) => new Promise(res => setTimeout(res, ms));
     let leftLocked = false;
     let rightLocked = false;
+    let catcherLocked = false;
     const onKeyDown = async (e) => {
       // Left flipper
       if ((e.code === 'ArrowLeft' || e.code === 'KeyA') && !leftLocked) {
@@ -224,8 +256,14 @@ export default function Pinball() {
       }
       // Launch the ball
       if (e.code === 'Space') {
-        // Launch the ball
         Body.setVelocity(ball, { x: 0, y: -30 })
+      }
+      // Catcher
+      if (e.code === 'KeyS' && !catcherLocked) {
+        catcherLocked = true;
+        Body.setVelocity(catcher, { x: 0, y: -30 })
+        await sleep(3000); // catcher up for 3 seconds
+        catcherLocked = false;
       }
     }
     window.addEventListener('keydown', onKeyDown)
@@ -247,6 +285,18 @@ export default function Pinball() {
       }
     })
 
+    // Catcher between flippers
+    const catcher = Bodies.rectangle(width / 2, flipperY + 150, (rightFlipperX - leftFlipperX) / 3, borderWidth / 2, { mass: 1000, render: { fillStyle: '#00ffff' } })
+    Body.setInertia(catcher, Infinity);
+    // Catcher constraint for the catcher
+    const catcherConstraint = Constraint.create({
+      bodyA: catcher,
+      pointA: { x: 0, y: 0 },
+      pointB: { x: width / 2, y: flipperY + 150 },
+      stiffness: 0.001
+    })
+    const catcherHolder = Bodies.rectangle(width / 2, flipperY + 200, (rightFlipperX - leftFlipperX) / 3, borderWidth / 2, { isStatic: true, render: { fillStyle: '#000000' } })
+
     // Add all static bodies to the world
     Composite.add(world, [
       ...borders, resetZone,
@@ -255,12 +305,14 @@ export default function Pinball() {
       leftFlipper, rightFlipper,
       leftFlipperConstraint, rightFlipperConstraint,
       leftFlipperBlocker, rightFlipperBlocker,
-      ball, ...bumpers
+      ball, ...bumpers,
+      catcher, catcherConstraint, catcherHolder
     ])
 
     // Cleanup on unmount
     return () => {
-      Events.off(engine, 'collisionStart')
+      Events.off(engine, 'collisionStart', scoreOnCollision);
+      Events.off(engine, 'collisionStart', ballResetOnCollision);
       Events.off(engine, 'beforeUpdate')
       window.removeEventListener('keydown', onKeyDown)
       Render.stop(render)
@@ -281,9 +333,14 @@ export default function Pinball() {
     <div style={{ display: 'grid', placeItems: 'center', height: '100vh', color: 'white' }}>
       <div style={{ position: 'relative' }}>
         <div ref={sceneRef} />
-        <div style={{ position: 'absolute', top: 8, left: 8, padding: '6px 10px', background: '#0008', borderRadius: 8 }}>
+        <div style={{ position:'absolute', top:8, left:8, padding:'6px 10px', background:'#0008', borderRadius:8 }}>
           <strong>Skóre:</strong> {score} &nbsp; | &nbsp;
-          ⬅️/A &nbsp; ➡️/D — flippery, Space — vystřelit
+          <strong>Rekord:</strong> {record}
+          &nbsp; | &nbsp; ⬅️/A &nbsp; ➡️/D — flippery, Space — vystřelit
+          &nbsp;&nbsp;
+          <button onClick={resetRecord} style={{ padding:'2px 8px', marginLeft:8 }}>
+            Reset rekord
+          </button>
         </div>
       </div>
     </div>
