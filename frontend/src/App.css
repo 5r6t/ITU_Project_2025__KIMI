@@ -1,6 +1,5 @@
 :root{
-    overflow: hidden;           /* hide scrollbar */
-  
+  overflow: hidden;           /* hide scrollbar */
   margin: 0; 
   box-sizing: border-box;
 }

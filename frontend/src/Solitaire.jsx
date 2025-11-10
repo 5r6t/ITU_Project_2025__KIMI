@@ -8,7 +8,8 @@ export default function Solitaire () {
     return (
         <div>
             <Header title="Solitaire" onClose={handleClose}></Header>
-            
+            <div className="solimain">
+            </div>
         </div>
     );
 }

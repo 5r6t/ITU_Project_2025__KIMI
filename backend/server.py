@@ -17,7 +17,7 @@ ADMIN_ID = 1
 
 init_db() # INITIALIZE DB (NOTHING HAPPENS IF INITIALIZED)
 create_default_user() # admin, `id`` is 1
-creature_id = create_default_creature() # ``id`` is1
+creature_id = create_default_creature() # ``id`` is 1
 
 clean_inventory(ADMIN_ID)
 
@@ -149,5 +149,26 @@ def pinball_reset_record():
     ensure_pinball_row(ADMIN_ID)
     return jsonify(reset_pinball_record(ADMIN_ID))
 
+# --- Achievements ----
+@app.route("/achievements")
+def get_achievements():
+    ensure_default_achievements(ADMIN_ID)
+    data = list_achievements(ADMIN_ID)
+
+    unlocked = []
+    locked = []
+
+    for ach_id, name, progress in data:
+        if progress >= 100:
+            unlocked.append(name)
+        else:
+            locked.append(name)
+    return jsonify({
+        "unlocked": unlocked,
+        "locked": locked
+    })
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
+
+

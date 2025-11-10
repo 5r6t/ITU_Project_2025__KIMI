@@ -1,3 +1,15 @@
-:root {
-  background-color: #6BC900;
+.solimain {
+  background: linear-gradient(125deg, #6bc900 0%, #2b7a00 100%);
+
+
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+
+  padding: 10px;
+  text-align: center;
+  font-family: sans-serif;
+
+  height: 100vh;
 }
