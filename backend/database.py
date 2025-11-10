@@ -220,6 +220,22 @@ def create_default_user():
             (DEFAULT_ID, "Admin")
         )
 
+def ensure_default_achievements(user_id):
+    defaults = [
+        ("First Win", 1),
+        ("100 Points", 100),
+        ("Perfect Run", 1),
+        ("Secret Boss", 1)
+    ]
+    with connect() as con:
+        cur = con.cursor()
+        for name, target in defaults:
+            cur.execute("""
+                INSERT OR IGNORE INTO Achievement (achvmnt_name, achvmnt_target, user_id)
+                VALUES (?, ?, ?)
+            """, (name, target, user_id))
+
+
 #### ACHIEVEMENTS ####
 def add_achievement(user_id, name, target=1, progress=0):
     with connect() as con:

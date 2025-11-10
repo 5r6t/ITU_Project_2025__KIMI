@@ -1,4 +1,5 @@
 // Achievements.jsx
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "./meta_components/Header";
 import AchievementBox from "./meta_components/AchievementBox";
@@ -8,77 +9,14 @@ import "./Achievements.css"
 export default function Achievements() {
   const navigate = useNavigate();
   const handleClose = () => navigate("/");
-  const unlockedAchievements = [
-  "🏅 First Win",
-  "🎯 100 Points",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 asdasd Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "🔥 Perfect Run",
-  "!!! Stop",
-];
-  const lockedAchievements = [
-  "🔒 Secret Boss",
-  "🔒 ???",
-  "🔥 Perfect Run",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Stop",
-  "!!! Start",
-];
+
+  const[achievements, setAchievements] = useState({ unlocked: [], locked: []});
+  useEffect(() => {
+    fetch("http://127.0.0.1:5000/achievements")
+      .then(res => res.json())
+      .then(data => setAchievements(data))
+      .catch(err => console.error("Failed to load achievements:", err));
+  }, []);
 
   return (
     <div>
@@ -86,13 +24,13 @@ export default function Achievements() {
 
       <div className="achieve">
         <AchievementBox title="Unlocked achievements">
-           {unlockedAchievements.map((text, i) => (
+           {achievements.unlocked.map((text, i) => (
               <div key={i} className="achievement-card">{text}</div>
             ))}
         </AchievementBox>
 
         <AchievementBox title="Locked achievements">
-          {lockedAchievements.map((text, i) => (
+          {achievements.locked.map((text, i) => (
               <div key={i} className="achievement-card">{text}</div>
             ))}
         </AchievementBox>
