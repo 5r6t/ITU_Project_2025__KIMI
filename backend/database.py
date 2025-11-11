@@ -240,12 +240,14 @@ def create_default_user():
             (DEFAULT_ID, "Admin")
         )
 
+#### ACHIEVEMENTS ####
 def create_default_achievements(user_id):
     defaults = [
         ("First Win", 1),
-        ("100 Points", 100),
+        ("30 Points", 30),
         ("Perfect Run", 1),
-        ("Secret Boss", 1)
+        ("Secret Boss", 1),
+        ("Nap Time", 1)
     ]
     with connect() as con:
         cur = con.cursor()
@@ -255,8 +257,6 @@ def create_default_achievements(user_id):
                 VALUES (?, ?, ?)
             """, (name, target, user_id))
 
-
-#### ACHIEVEMENTS ####
 def add_achievement(user_id, name, target=1, progress=0):
     with connect() as con:
         cur = con.cursor()
@@ -269,19 +269,33 @@ def add_achievement(user_id, name, target=1, progress=0):
 def list_achievements(user_id):
     with connect() as con:
         cur = con.cursor()
-        cur.execute("SELECT achvmnt_id, achvmnt_name, achvmnt_progress FROM Achievement WHERE user_id=?", (user_id,))
+        cur.execute("""
+            SELECT achvmnt_id, achvmnt_name, achvmnt_progress, completed
+            FROM Achievement
+            WHERE user_id=?;
+        """, (user_id,))
         return cur.fetchall()
 
 # sorry, achievement popups only after the game >w<
 def update_achievement_progress(achvmnt_id, new_progress):
     new_progress = max(0, min(100, new_progress))
     with connect() as con:
-        con.execute("""
+        cur = con.cursor()
+        cur.execute("""
             UPDATE Achievement 
             SET achvmnt_progress=?, 
                 completed = CASE WHEN ? >= achvmnt_target THEN 1 ELSE 0 END
             WHERE achvmnt_id=?;
-        """, (new_progress, achvmnt_id))
+        """, (new_progress, new_progress, achvmnt_id))
+
+        # return updated achievement data
+        cur.execute("""
+            SELECT achvmnt_id, achvmnt_name, achvmnt_progress, achvmnt_target, completed
+            FROM Achievement
+            WHERE achvmnt_id=?;
+        """, (achvmnt_id,))
+        return cur.fetchone()
+
 
 #### INVENTORY ####
 def clean_inventory(user_id):

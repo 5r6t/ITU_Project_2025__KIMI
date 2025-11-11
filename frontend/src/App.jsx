@@ -6,8 +6,10 @@ import Inventory from "./Inventory";
 
 import StatusBar from "./meta_components/StatusBar";
 import Header from "./meta_components/Header";
+import { useAchievements } from "./meta_components/AchievementContext";
 
 export default function App() {
+  const { completeAchievement } = useAchievements();
   const [state, setState] = useState({ hunger: 0, clean: 0, energy: 0 });
   const [showInventory, setShowInventory] = useState(false);
   const [extensionCatcher, setExtensionCatcher] = useState(false);
@@ -124,7 +126,14 @@ export default function App() {
           <button onClick={toggleInventory}> Inventory 🎒 </button>
           <button onClick={feedKimi}> Feed Kimi 🍗 </button>
           <button onClick={cleanKimi}> Clean Kimi 🧼 </button>
-          <button onClick={energizeKimi}> Make Kimi sleep 💤 </button>
+          <button
+            onClick={() => {
+              energizeKimi();         
+              completeAchievement(5); 
+            }}
+          >
+            Make Kimi sleep 💤
+          </button>
           <button onClick={exerciseKimi}> Make Kimi exercise ⚡</button>
 
           <StatusBar label="🍗 Hunger" value={state.hunger} color="#D02121" />

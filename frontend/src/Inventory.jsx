@@ -85,7 +85,7 @@ export default function Inventory({ isOpen, onClose, onUpdateKimiState }) {
         // Panel se RENDERUJE VŽDY a je řízen pomocí CSS třídy
         <div className={panelClass}>
             <div className="panel-header">
-                <h2>Inventář 🎒</h2>
+                <h2>Inventory 🎒</h2>
                 <button className="close-button" onClick={onClose}>&times;</button>
             </div>
             

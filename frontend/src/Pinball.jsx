@@ -3,11 +3,13 @@ import Matter, { Engine, Render, Runner, Bodies, Body, Composite, Constraint, Ev
 import Header from "./meta_components/Header";
 import { useNavigate } from 'react-router-dom';
 import axios from "axios";
+import { AchievementProvider, useAchievements } from "./meta_components/AchievementContext";
+
 
 const API = axios.create({ baseURL: "http://127.0.0.1:5000/api/v1" });
 
 // Sound effect helper
-const playSound = (src, volume = 1.0) => {
+const playSound = (src, volume = 1) => {
   const audio = new Audio(src);
   audio.volume = volume;
   audio.play().catch(() => {});
@@ -18,6 +20,9 @@ export default function Pinball() {
     const handleClose = () => {
         navigate("/"); 
   };
+  // achievement hook 
+  const { completeAchievement } = useAchievements();
+
   const sceneRef = useRef(null)
   const engineRef = useRef(Engine.create())
   const [score, setScore] = useState(0)
@@ -135,6 +140,10 @@ export default function Pinball() {
           playSound("/sounds/Boom.mp3", 0.2);
           setScore(data.score);
           setRecord(data.record); // If it got overwritten (e.g., server might add bonuses)
+
+          if (data.score == 30) {
+             completeAchievement(2); // unlock "30 Points"
+          }
         }
       }
     };

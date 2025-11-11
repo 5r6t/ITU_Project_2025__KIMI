@@ -167,20 +167,35 @@ def ext_catcher_post():
     return jsonify(set_extension_catcher(ADMIN_ID, enabled))
 
 # --- Achievements ----
-@app.route("/achievements")
+@app.route("/get_achievements")
 def get_achievements():
+    data = list_achievements(ADMIN_ID)
     unlocked = []
     locked = []
 
-    for ach_id, name, progress in data:
-        if progress >= 100:
+    for each_id, name, progress, completed in data:
+        if completed:
             unlocked.append(name)
         else:
             locked.append(name)
 
     return jsonify({"unlocked": unlocked, "locked": locked})
 
+
+@app.route("/update_achievement/<int:achvmnt_id>/<int:new_progress>", methods=["POST"])
+def update_achievement(achvmnt_id, new_progress):
+    updated = update_achievement_progress(achvmnt_id, new_progress)
+    if not updated:
+        return jsonify({"error": "Achievement not found"}), 404
+
+    ach_id, name, progress, target, completed = updated
+    return jsonify({
+        "id": ach_id,
+        "name": name,
+        "progress": progress,
+        "target": target,
+        "completed": bool(completed)
+    })
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
-
-

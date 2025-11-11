@@ -1,0 +1,28 @@
+.achievement-info {
+  position: fixed;
+  bottom: 20px;
+  right: calc((100vw - 1600px) / 2 + 20px); /* shifts inward when viewport >1600px */
+  background: rgba(40, 40, 40, 0.9);
+  color: #fff;
+  border-radius: 12px;
+  padding: 12px 18px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  font-family: sans-serif;
+  font-size: 1rem;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: slideIn 0.4s forwards;
+  z-index: 9999;
+  
+}
+
+@keyframes slideIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.achievement-text strong {
+  color: #ffd700;
+}
