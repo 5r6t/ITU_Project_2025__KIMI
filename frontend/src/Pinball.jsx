@@ -166,6 +166,9 @@ export default function Pinball() {
           // Reset ball position and velocity
           Body.setPosition(ball, ballSpawn);
           Body.setVelocity(ball, { x: 0, y: 0 });
+
+          // Play sound
+          playSound("/sounds/Bruh.mp3", 0.3);
         }
       }
     };
