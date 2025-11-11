@@ -92,7 +92,6 @@ export default function App() {
             onUpdateKimiState={updateKimiState} // Aktualizuje stav Kimiho
         />
         
-        <div className="app-container">
         <h1>Kimi Demo</h1>
         <div>
           
@@ -140,7 +139,6 @@ export default function App() {
           <StatusBar label="🧼 Clean"  value={state.clean}  color="#59E817" />
           <StatusBar label="💤 Energy" value={state.energy} color="#EFE826" />
           </div>
-        </div>
       </div>
   );
 }

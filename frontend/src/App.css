@@ -1,19 +1,24 @@
-
+html, body, #root { /*DON'T DELETE -- CHROME DEPENDENCY*/
+  height: 100%;
+  width: 100%;
+  margin: 0;
+}
 .app-container {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
-
+  width: 100%;
   padding: 10px;
   text-align: center;
   font-family: sans-serif;
 
   background: royalblue;
+  box-sizing: border-box;
 }
 
 button {
-  padding: "8px 14px";
+  padding: 8px 14px;
   margin-bottom: 16px;
   font-size: 14pt;
 }
