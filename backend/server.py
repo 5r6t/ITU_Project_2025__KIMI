@@ -2,7 +2,6 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from database import *
 
-
 ITEM_EFFECTS = {
     "Cheese": {"hunger": 20, "clean": -5},
     "Soap": {"clean": 30},
@@ -15,6 +14,7 @@ CORS(app)  # povolí Reactu volať API
 
 ADMIN_ID = 1 
 
+destroy()
 init_db() # INITIALIZE DB (NOTHING HAPPENS IF INITIALIZED)
 create_default_user() # admin, `id`` is 1
 creature_id = create_default_creature() # ``id`` is 1
@@ -32,6 +32,7 @@ add_to_inventory(ADMIN_ID, energy_drink_id, 3)
 ensure_pinball_row(ADMIN_ID)   # ensure pinball row for admin user
 
 # see get_achievements api
+#remove_all_achievements()
 create_default_achievements(ADMIN_ID)
 data = list_achievements(ADMIN_ID)
 
@@ -164,6 +165,20 @@ def ext_catcher_post():
     data = request.get_json(force=True) or {}
     enabled = bool(data.get("enabled", False))
     return jsonify(set_extension_catcher(ADMIN_ID, enabled))
+
+# --- Achievements ----
+@app.route("/achievements")
+def get_achievements():
+    unlocked = []
+    locked = []
+
+    for ach_id, name, progress in data:
+        if progress >= 100:
+            unlocked.append(name)
+        else:
+            locked.append(name)
+
+    return jsonify({"unlocked": unlocked, "locked": locked})
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

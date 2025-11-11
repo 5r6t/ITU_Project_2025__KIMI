@@ -35,7 +35,8 @@ def init_db():
                 achvmnt_target   INTEGER DEFAULT 1,
                 completed        BOOLEAN DEFAULT 0, 
                 user_id          INTEGER,
-                FOREIGN KEY (user_id) REFERENCES User(user_id)
+                FOREIGN KEY (user_id) REFERENCES User(user_id),
+                UNIQUE (achvmnt_name, user_id)
             );
         """)
 
@@ -110,14 +111,33 @@ def init_db():
 
 #### Delete functions ####
 def destroy():
-    with connect() as con:
-        cur = con.cursor()
+    """Drops all project tables explicitly, ignoring foreign keys."""
+    con = sqlite3.connect(CONST_DB_FILE)
+    con.execute("PRAGMA foreign_keys = OFF;")
+    cur = con.cursor()
 
-        cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        tables = cur.fetchall()
+    tables = [
+        "Achievement",
+        "Creature",
+        "RecipeIngredient",
+        "Recipe",
+        "Inventory",
+        "Ingredient",
+        "Pinball",
+        "User",
+    ]
 
-        for (table,) in tables:
-            cur.execute(f"DROP TABLE IF EXISTS {table}")
+    for table in tables:
+        try:
+            cur.execute(f"DROP TABLE IF EXISTS {table};")
+            print(f"Dropped table {table}")
+        except Exception as e:
+            print(f"Failed to drop {table}: {e}")
+
+    con.commit()
+    con.close()
+    print("Database wiped and ready for re-init.")
+
 
 
 def remove_all_achievements():
