@@ -4,12 +4,59 @@ import './App.css';
 
 // Pomocná komponenta pro zobrazení karty předmětu
 function ItemCard({ item, onUseItem }) {
-    let effectText = "";
-    if (item.name === "Cheese") effectText = "Hlad +20, Čistota -5";
-    else if (item.name === "Soap") effectText = "Čistota +30";
-    else if (item.name === "Energy Drink") effectText = "Energie +40, Čistota -5";
-    else if (item.name === "Water") effectText = "Hlad +5, Energie +5";
-    else effectText = "Neznámý efekt";
+    const [effectText, setEffectText] = useState("");
+    
+    useEffect(() => {
+        let text = "";
+        if (item.name === "Cheese") {
+            text = "Hlad +20, Čistota -5";
+        } else if (item.name === "Soap") {
+            text = "Čistota +30";
+        } else if (item.name === "Energy Drink") {
+            text = "Energie +40, Čistota -5";
+        } else if (item.name === "Water") {
+            text = "Hlad +5, Energie +5";
+        } else if (item.name.startsWith("Pizza:")) {
+            // Parsuj Pizza ID a fetchu effects z backend
+            const pizzaId = item.name.split(':')[1];
+            fetchPizzaEffects(pizzaId);
+            return; // exit early, fetchPizzaEffects bude setovat effectText
+        } else {
+            text = "Neznámý efekt";
+        }
+        setEffectText(text);
+    }, [item.name]);
+    
+    const fetchPizzaEffects = async (pizzaId) => {
+        try {
+            const res = await axios.get(`http://127.0.0.1:5000/pizza/saved`);
+            const saved = res.data.saved || [];
+            const pizza = saved.find(p => p.pizza_id === parseInt(pizzaId));
+            
+            if (pizza && pizza.pizza_data) {
+                try {
+                    const data = typeof pizza.pizza_data === 'string' ? JSON.parse(pizza.pizza_data) : pizza.pizza_data;
+                    const effects = data.effects || {};
+                    
+                    // Formátuj efekty jako string
+                    const parts = [];
+                    if (effects.hunger) parts.push(`Hlad ${effects.hunger > 0 ? '+' : ''}${effects.hunger}`);
+                    if (effects.clean) parts.push(`Čistota ${effects.clean > 0 ? '+' : ''}${effects.clean}`);
+                    if (effects.energy) parts.push(`Energie ${effects.energy > 0 ? '+' : ''}${effects.energy}`);
+                    
+                    setEffectText(parts.length > 0 ? parts.join(", ") : "Žádné efekty");
+                } catch (e) {
+                    console.error("Chyba při parsování dat pizzy:", e);
+                    setEffectText("Chyba při načítání efektů");
+                }
+            } else {
+                setEffectText("Pizza nenalezena");
+            }
+        } catch (e) {
+            console.error("Chyba při fetchu pizzy:", e);
+            setEffectText("Chyba při načítání");
+        }
+    };
     
     const displayQuantity = item.quantity || 0; 
 

@@ -94,10 +94,14 @@ export default function App() {
         
         <h1>Kimi Demo</h1>
         <div>
-          
           <Link to="/pinball">
             <button>
               Spustit Pinball 🎮
+            </button>
+          </Link>
+          <Link to="/pizza" style={{ marginLeft: 8 }}>
+            <button>
+              Decorate Pizza 🍕
             </button>
           </Link>
         </div>

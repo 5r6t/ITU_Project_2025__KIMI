@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request
+import json
 from flask_cors import CORS
 from database import *
 
@@ -7,6 +8,15 @@ ITEM_EFFECTS = {
     "Soap": {"clean": 30},
     "Energy Drink": {"energy": 40, "clean": -5},
     # Přidejte další ingredience, které chcete mít v inventáři
+}
+
+# Effects for pizza toppings (used when saving a pizza)
+TOPPING_EFFECTS = {
+    "tomato": {"hunger": 8, "clean": 2},
+    "cheese": {"hunger": 18},
+    "mushroom": {"hunger": 6, "clean": 1},
+    "pepper": {"hunger": 4, "energy": 2},
+    "bacon": {"hunger": 25, "clean": -5},
 }
 
 app = Flask(__name__)
@@ -90,9 +100,61 @@ def use_item_api(item_name):
     if not ingredient_id:
         return jsonify({"message": f"Položka '{item_name}' nebyla nalezena v DB."}), 404
 
-    effect = ITEM_EFFECTS.get(item_name)
-    if not effect:
-        return jsonify({"message": f"Položka '{item_name}' nemá definovaný herní efekt."}), 400
+    # Special handling for saved pizzas stored as Ingredient with name "Pizza:<id>"
+    if isinstance(item_name, str) and item_name.startswith("Pizza:"):
+        # extract id
+        try:
+            pizza_id = int(item_name.split(':', 1)[1])
+        except Exception:
+            return jsonify({"message": "Neplatný formát Pizza ID."}), 400
+
+        saved = get_saved_pizza(pizza_id)
+        if not saved:
+            return jsonify({"message": "Uložená pizza nenalezena."}), 404
+        try:
+            pizza_obj = json.loads(saved["pizza_data"]) if isinstance(saved["pizza_data"], str) else saved["pizza_data"]
+        except Exception:
+            return jsonify({"message": "Chyba při čtení dat pizzy."}), 500
+
+        # compute effects from stored effects or derive from toppings
+        effects = pizza_obj.get("effects") if isinstance(pizza_obj, dict) else None
+        if effects is None:
+            # fallback: compute from toppings array (including scale and /5 reduction)
+            base_effects = {"hunger": 0, "clean": 0, "energy": 0}
+            toppingTypes = set()
+            for t in pizza_obj.get("toppings", []) or []:
+                ttype = t.get("type") if isinstance(t, dict) else t
+                scale = t.get("scale", 1) if isinstance(t, dict) else 1
+                toppingTypes.add(ttype)
+                e = TOPPING_EFFECTS.get(ttype, {})
+                for k, v in e.items():
+                    base_effects[k] = base_effects.get(k, 0) + (v * scale / 5)
+
+            # compute recipe bonuses
+            bonus_effects = {"hunger": 0, "clean": 0, "energy": 0}
+            special_recipes = [
+                {"required": ["tomato", "cheese"], "bonus": {"hunger": 10, "clean": 5}},
+                {"required": ["tomato", "mushroom", "pepper"], "bonus": {"hunger": 8, "clean": 8, "energy": 3}},
+                {"required": ["cheese", "bacon"], "bonus": {"hunger": 20, "clean": -3}},
+                {"required": ["tomato", "cheese", "mushroom", "bacon"], "bonus": {"hunger": 30, "clean": 2, "energy": 5}},
+                {"required": ["pepper", "bacon"], "bonus": {"hunger": 15, "energy": 10, "clean": -2}},
+            ]
+            for recipe in special_recipes:
+                if all(t in toppingTypes for t in recipe["required"]):
+                    for k, v in recipe["bonus"].items():
+                        bonus_effects[k] = bonus_effects.get(k, 0) + v
+
+            effects = {
+                "hunger": int(base_effects["hunger"] + bonus_effects["hunger"]),
+                "clean": int(base_effects["clean"] + bonus_effects["clean"]),
+                "energy": int(base_effects["energy"] + bonus_effects["energy"]),
+            }
+
+        effect = effects
+    else:
+        effect = ITEM_EFFECTS.get(item_name)
+        if not effect:
+            return jsonify({"message": f"Položka '{item_name}' nemá definovaný herní efekt."}), 400
 
     # 1. KONTROLA: Ověřit, zda je položka v inventáři a má kladné množství
     inventory = get_inventory(ADMIN_ID)
@@ -165,6 +227,73 @@ def ext_catcher_post():
     data = request.get_json(force=True) or {}
     enabled = bool(data.get("enabled", False))
     return jsonify(set_extension_catcher(ADMIN_ID, enabled))
+
+
+# --- PIZZA SAVE API ---
+@app.route("/pizza/save", methods=["POST"])
+def pizza_save():
+    """Uloží JSON reprezentaci pizzy do DB a přidá ji jako položku do inventáře (jako "Custom Pizza <id>")."""
+    data = request.get_json(force=True) or {}
+    toppings = data.get("toppings")
+    name = data.get("name") or "Custom Pizza"
+
+    # basic validation
+    if toppings is None:
+        return jsonify({"error": "missing toppings"}), 400
+
+    # save pizza blob
+    try:
+        # compute aggregated effects from toppings (including scale and /5 reduction)
+        base_effects = {"hunger": 0, "clean": 0, "energy": 0}
+        for t in toppings:
+            ttype = t.get('type') if isinstance(t, dict) else t
+            scale = t.get('scale', 1) if isinstance(t, dict) else 1
+            e = TOPPING_EFFECTS.get(ttype, {})
+            for k, v in e.items():
+                base_effects[k] = base_effects.get(k, 0) + (v * scale / 5)
+
+        # compute recipe bonuses
+        toppingTypes = set(t.get('type') if isinstance(t, dict) else t for t in toppings)
+        bonus_effects = {"hunger": 0, "clean": 0, "energy": 0}
+        # Check all special recipes (hardcoded for now, or can fetch from SPECIAL_RECIPES if defined on backend)
+        special_recipes = [
+            {"required": ["tomato", "cheese"], "bonus": {"hunger": 10, "clean": 5}},
+            {"required": ["tomato", "mushroom", "pepper"], "bonus": {"hunger": 8, "clean": 8, "energy": 3}},
+            {"required": ["cheese", "bacon"], "bonus": {"hunger": 20, "clean": -3}},
+            {"required": ["tomato", "cheese", "mushroom", "bacon"], "bonus": {"hunger": 30, "clean": 2, "energy": 5}},
+            {"required": ["pepper", "bacon"], "bonus": {"hunger": 15, "energy": 10, "clean": -2}},
+        ]
+        for recipe in special_recipes:
+            if all(t in toppingTypes for t in recipe["required"]):
+                for k, v in recipe["bonus"].items():
+                    bonus_effects[k] = bonus_effects.get(k, 0) + v
+
+        # combine base + bonus and floor to int
+        total_effects = {
+            "hunger": int(base_effects["hunger"] + bonus_effects["hunger"]),
+            "clean": int(base_effects["clean"] + bonus_effects["clean"]),
+            "energy": int(base_effects["energy"] + bonus_effects["energy"]),
+        }
+
+        pizza_obj = {"name": name, "toppings": toppings, "effects": total_effects}
+        pizza_json = json.dumps(pizza_obj)
+        pizza_id = save_pizza(ADMIN_ID, name, pizza_json)
+    except Exception as e:
+        print("Failed to save pizza:", e)
+        return jsonify({"error": "failed to save pizza"}), 500
+
+    # create an ingredient representing this saved pizza so it can appear in inventory
+    pizza_ingredient_name = f"Pizza:{pizza_id}"
+    ingredient_id = add_ingredient(pizza_ingredient_name)
+    add_to_inventory(ADMIN_ID, ingredient_id, 1)
+
+    return jsonify({"pizza_id": pizza_id, "ingredient_name": pizza_ingredient_name})
+
+
+@app.route("/pizza/saved")
+def pizza_saved_list():
+    data = list_saved_pizzas(ADMIN_ID)
+    return jsonify({"saved": data})
 
 # --- Achievements ----
 @app.route("/get_achievements")

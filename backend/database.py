@@ -107,6 +107,18 @@ def init_db():
             );
         """)
 
+        # Saved pizzas as JSON blobs
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS SavedPizza (
+                pizza_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                pizza_name TEXT,
+                pizza_data TEXT,
+                user_id INTEGER,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES User(user_id)
+            );
+        """)
+
     print("Database initialized! ^w^")
 
 #### Delete functions ####
@@ -503,6 +515,41 @@ def set_extension_catcher(user_id: int, enabled: bool):
 
 def get_extension_catcher(user_id: int):
     with connect() as con:
+
+        # placeholder - real implementation exists earlier in file; keeping function placeholder consistent
+        cur = con.cursor()
+        cur.execute("SELECT extension_catcher FROM Pinball WHERE user_id=?", (user_id,))
+        row = cur.fetchone()
+        if not row:
+            return {"extension_catcher": False}
+        return {"extension_catcher": bool(row[0])}
+
+#### SAVED PIZZAS ####
+def save_pizza(user_id, pizza_name, pizza_json):
+    """Save JSON blob of pizza and return pizza_id."""
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute(
+            "INSERT INTO SavedPizza (pizza_name, pizza_data, user_id) VALUES (?, ?, ?)",
+            (pizza_name, pizza_json, user_id)
+        )
+        return cur.lastrowid
+
+def list_saved_pizzas(user_id):
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("SELECT pizza_id, pizza_name, pizza_data, created_at FROM SavedPizza WHERE user_id=? ORDER BY created_at DESC", (user_id,))
+        rows = cur.fetchall()
+        return [ {"pizza_id": r[0], "pizza_name": r[1], "pizza_data": r[2], "created_at": r[3]} for r in rows ]
+
+def get_saved_pizza(pizza_id):
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("SELECT pizza_id, pizza_name, pizza_data, user_id, created_at FROM SavedPizza WHERE pizza_id=?", (pizza_id,))
+        r = cur.fetchone()
+        if not r:
+            return None
+        return {"pizza_id": r[0], "pizza_name": r[1], "pizza_data": r[2], "user_id": r[3], "created_at": r[4]}
         cur = con.cursor()
         cur.execute(
             "SELECT extension_catcher FROM Pinball WHERE user_id=?",
