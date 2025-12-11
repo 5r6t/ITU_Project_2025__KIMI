@@ -242,6 +242,10 @@ def pizza_save():
         return jsonify({"error": "missing toppings"}), 400
 
     # save pizza blob
+    # accept optional bake metadata (from minigame)
+    bake_result = data.get('bake_result')
+    score = data.get('score')
+
     try:
         # compute aggregated effects from toppings (including scale and /5 reduction)
         base_effects = {"hunger": 0, "clean": 0, "energy": 0}
@@ -275,7 +279,32 @@ def pizza_save():
             "energy": int(base_effects["energy"] + bonus_effects["energy"]),
         }
 
+        # if bake_result is provided, apply multiplier based on classification
+        if bake_result and isinstance(bake_result, dict):
+            classification = bake_result.get("classification", "ok")
+            multiplier = 1.0
+            if classification == "perfect":
+                multiplier = 1.3
+            elif classification == "good":
+                multiplier = 1.1
+            elif classification in ["undercooked", "burnt"]:
+                multiplier = 0.7
+            # apply multiplier to all effects
+            for key in total_effects:
+                total_effects[key] = int(total_effects[key] * multiplier)
+
         pizza_obj = {"name": name, "toppings": toppings, "effects": total_effects}
+        # if client supplied bake metadata, include it in the saved blob
+        if bake_result is not None:
+            pizza_obj["bake_result"] = bake_result
+        if score is not None:
+            try:
+                pizza_obj["score"] = int(score)
+            except Exception:
+                pizza_obj["score"] = score
+        pizza_color = data.get('pizza_color')
+        if pizza_color is not None:
+            pizza_obj["pizza_color"] = pizza_color
         pizza_json = json.dumps(pizza_obj)
         pizza_id = save_pizza(ADMIN_ID, name, pizza_json)
     except Exception as e:
@@ -283,7 +312,8 @@ def pizza_save():
         return jsonify({"error": "failed to save pizza"}), 500
 
     # create an ingredient representing this saved pizza so it can appear in inventory
-    pizza_ingredient_name = f"Pizza:{pizza_id}"
+    # use the pizza name as ingredient name, with pizza_id as identifier
+    pizza_ingredient_name = f"{name}:{pizza_id}"
     ingredient_id = add_ingredient(pizza_ingredient_name)
     add_to_inventory(ADMIN_ID, ingredient_id, 1)
 
@@ -294,6 +324,52 @@ def pizza_save():
 def pizza_saved_list():
     data = list_saved_pizzas(ADMIN_ID)
     return jsonify({"saved": data})
+
+@app.route("/pizza/preview", methods=["POST"])
+def pizza_preview():
+    """Vypočítá efekty a vrátí preview pizzy bez uložení."""
+    data = request.get_json(force=True) or {}
+    toppings = data.get("toppings", [])
+    
+    if not toppings:
+        return jsonify({"error": "missing toppings"}), 400
+    
+    try:
+        # compute aggregated effects from toppings (including scale and /5 reduction)
+        base_effects = {"hunger": 0, "clean": 0, "energy": 0}
+        for t in toppings:
+            ttype = t.get('type') if isinstance(t, dict) else t
+            scale = t.get('scale', 1) if isinstance(t, dict) else 1
+            e = TOPPING_EFFECTS.get(ttype, {})
+            for k, v in e.items():
+                base_effects[k] = base_effects.get(k, 0) + (v * scale / 5)
+
+        # compute recipe bonuses
+        toppingTypes = set(t.get('type') if isinstance(t, dict) else t for t in toppings)
+        bonus_effects = {"hunger": 0, "clean": 0, "energy": 0}
+        special_recipes = [
+            {"required": ["tomato", "cheese"], "bonus": {"hunger": 10, "clean": 5}},
+            {"required": ["tomato", "mushroom", "pepper"], "bonus": {"hunger": 8, "clean": 8, "energy": 3}},
+            {"required": ["cheese", "bacon"], "bonus": {"hunger": 20, "clean": -3}},
+            {"required": ["tomato", "cheese", "mushroom", "bacon"], "bonus": {"hunger": 30, "clean": 2, "energy": 5}},
+            {"required": ["pepper", "bacon"], "bonus": {"hunger": 15, "energy": 10, "clean": -2}},
+        ]
+        for recipe in special_recipes:
+            if all(t in toppingTypes for t in recipe["required"]):
+                for k, v in recipe["bonus"].items():
+                    bonus_effects[k] = bonus_effects.get(k, 0) + v
+
+        # combine base + bonus and floor to int
+        total_effects = {
+            "hunger": int(base_effects["hunger"] + bonus_effects["hunger"]),
+            "clean": int(base_effects["clean"] + bonus_effects["clean"]),
+            "energy": int(base_effects["energy"] + bonus_effects["energy"]),
+        }
+        
+        return jsonify({"toppings": toppings, "effects": total_effects})
+    except Exception as e:
+        print("Failed to preview pizza:", e)
+        return jsonify({"error": "failed to preview pizza"}), 500
 
 # --- Achievements ----
 @app.route("/get_achievements")

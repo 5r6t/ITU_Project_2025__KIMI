@@ -5,6 +5,7 @@ import './App.css';
 // Pomocná komponenta pro zobrazení karty předmětu
 function ItemCard({ item, onUseItem }) {
     const [effectText, setEffectText] = useState("");
+    const [pizzaData, setPizzaData] = useState(null);
     
     useEffect(() => {
         let text = "";
@@ -16,9 +17,10 @@ function ItemCard({ item, onUseItem }) {
             text = "Energie +40, Čistota -5";
         } else if (item.name === "Water") {
             text = "Hlad +5, Energie +5";
-        } else if (item.name.startsWith("Pizza:")) {
-            // Parsuj Pizza ID a fetchu effects z backend
-            const pizzaId = item.name.split(':')[1];
+        } else if (item.name.includes(":") && !item.name.includes("://")) {
+            // Parsuj Pizza ID a fetchu effects z backend - format: "PizzaName:id"
+            const parts = item.name.split(':');
+            const pizzaId = parts[parts.length - 1]; // vezmi poslední část jako ID
             fetchPizzaEffects(pizzaId);
             return; // exit early, fetchPizzaEffects bude setovat effectText
         } else {
@@ -36,6 +38,7 @@ function ItemCard({ item, onUseItem }) {
             if (pizza && pizza.pizza_data) {
                 try {
                     const data = typeof pizza.pizza_data === 'string' ? JSON.parse(pizza.pizza_data) : pizza.pizza_data;
+                    setPizzaData(data);
                     const effects = data.effects || {};
                     
                     // Formátuj efekty jako string
@@ -58,12 +61,43 @@ function ItemCard({ item, onUseItem }) {
         }
     };
     
-    const displayQuantity = item.quantity || 0; 
+    const displayQuantity = item.quantity || 0;
+    
+    // Extract display name for pizzas (remove :id suffix)
+    const displayName = (item.name.includes(":") && !item.name.includes("://")) 
+        ? item.name.split(':').slice(0, -1).join(':')
+        : item.name;
 
     return (
         <div className="inventory-item-card">
-            {/* Využijeme displayQuantity pro zobrazení, i když by bylo 0 */}
-            <span style={{ fontWeight: 'bold' }}>{item.name} ({displayQuantity})</span>
+            {/* Zobrazení pizzy s toppingy */}
+            {(item.name.includes(":") && !item.name.includes("://")) && pizzaData ? (
+                <div className="pizza-preview">
+                    <div className="pizza-preview-canvas">
+                        <div 
+                            className="pizza-base-preview"
+                            style={{
+                                background: pizzaData.pizza_color || `radial-gradient(circle at 40% 35%, #f8d9a0 0%, #f1c27d 40%, #d99b5e 70%, #b86f36 100%)`
+                            }}
+                        />
+                        {pizzaData.toppings && pizzaData.toppings.map((t) => (
+                            <div
+                                key={t.id}
+                                className="topping-preview"
+                                style={{
+                                    left: `${t.x}%`,
+                                    top: `${t.y}%`,
+                                    transform: `translate(-50%, -50%) scale(${t.scale || 1})`,
+                                }}
+                            >
+                                <span>{t.emoji}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ) : null}
+            
+            <span style={{ fontWeight: 'bold' }}>{displayName}{displayQuantity > 1 ? ` (${displayQuantity})` : ''}</span>
             <span className="effect-text">{effectText}</span>
             <button 
                 className="use-button"

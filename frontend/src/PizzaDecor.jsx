@@ -100,6 +100,12 @@ export default function PizzaDecor() {
 
   useEffect(() => {
     localStorage.setItem('pizza_toppings', JSON.stringify(toppings));
+    
+    // Synchronize toppings to backend preview when they change
+    if (toppings.length > 0) {
+      axios.post('http://127.0.0.1:5000/pizza/preview', { toppings })
+        .catch(e => console.error('Preview sync failed:', e));
+    }
   }, [toppings]);
 
   const addTopping = (type) => {
@@ -200,7 +206,6 @@ export default function PizzaDecor() {
   };
 
   const clearPizza = () => setToppings([]);
-
   const saveToInventory = async () => {
     try {
       // Floor all effect values before saving
@@ -221,6 +226,18 @@ export default function PizzaDecor() {
       console.error('Save failed', e);
       alert('Failed to save pizza to server. Is backend running?');
     }
+  };
+
+  // Start baking: persist current toppings and navigate to baking page
+  const startBaking = () => {
+    try {
+      // persist to localStorage so baking page can pick it up
+      localStorage.setItem('pizza_toppings', JSON.stringify(toppings));
+    } catch (e) {
+      console.warn('Could not save toppings to localStorage', e);
+    }
+    // navigate with state as well for immediate availability
+    navigate('/pizza-baking', { state: { toppings } });
   };
 
   const effectData = calculateTotalEffects();
@@ -272,7 +289,7 @@ export default function PizzaDecor() {
           </div>
           <div className="palette-actions">
             <button onClick={clearPizza}>Clear</button>
-            <button onClick={saveToInventory}>Bake</button>
+            <button onClick={startBaking}>Bake</button>
           </div>
 
           {/* Effects Preview Panel */}
