@@ -393,14 +393,7 @@ def update_achievement(achvmnt_id, new_progress):
     if not updated:
         return jsonify({"error": "Achievement not found"}), 404
 
-    ach_id, name, progress, target, completed = updated
-    return jsonify({
-        "id": ach_id,
-        "name": name,
-        "progress": progress,
-        "target": target,
-        "completed": bool(completed)
-    })
+    return jsonify(updated)
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

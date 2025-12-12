@@ -287,26 +287,44 @@ def list_achievements(user_id):
             WHERE user_id=?;
         """, (user_id,))
         return cur.fetchall()
-
-# sorry, achievement popups only after the game >w<
+    
 def update_achievement_progress(achvmnt_id, new_progress):
     new_progress = max(0, min(100, new_progress))
+
     with connect() as con:
         cur = con.cursor()
+
+        # read BEFORE update
+        cur.execute("SELECT completed FROM Achievement WHERE achvmnt_id=?", (achvmnt_id,))
+        old_completed = bool(cur.fetchone()[0])
+
+        # perform update
         cur.execute("""
-            UPDATE Achievement 
-            SET achvmnt_progress=?, 
+            UPDATE Achievement
+            SET achvmnt_progress=?,
                 completed = CASE WHEN ? >= achvmnt_target THEN 1 ELSE 0 END
             WHERE achvmnt_id=?;
         """, (new_progress, new_progress, achvmnt_id))
 
-        # return updated achievement data
+        # read AFTER update
         cur.execute("""
             SELECT achvmnt_id, achvmnt_name, achvmnt_progress, achvmnt_target, completed
             FROM Achievement
             WHERE achvmnt_id=?;
         """, (achvmnt_id,))
-        return cur.fetchone()
+        row = cur.fetchone()
+
+        new_completed = bool(row[4])
+
+        return {
+            "id": row[0],
+            "name": row[1],
+            "progress": row[2],
+            "target": row[3],
+            "completed": new_completed,
+            "newly_completed": (not old_completed and new_completed)
+        }
+
 
 
 #### INVENTORY ####

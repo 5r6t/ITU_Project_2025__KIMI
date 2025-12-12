@@ -1,4 +1,10 @@
 // EXAMPLE
+import axios from "axios";
+
+const API = axios.create({
+    baseURL: "http://127.0.0.1:5000",
+});
+
 export const PizzaModel = {
     loadLocalToppings() {
         try {
@@ -14,18 +20,12 @@ export const PizzaModel = {
     },
 
     async sendPreview(toppings) {
-        return fetch("http://127.0.0.1:5000/pizza/preview", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ toppings })
-        }).then(r => r.json());
+        const res = await API.post("/pizza/preview", { toppings });
+        return res.data; // axios gives .data directly
     },
 
     async savePizza(payload) {
-        return fetch("http://127.0.0.1:5000/pizza/save", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        }).then(r => r.json());
+        const res = await API.post("/pizza/save", payload);
+        return res.data;
     }
 };

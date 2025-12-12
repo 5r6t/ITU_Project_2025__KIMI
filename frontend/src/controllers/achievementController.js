@@ -6,10 +6,10 @@ export function createAchievementController({ setPopup, onUpdate }) {
             try {
                 const data = await AchievementModel.update(id, newProgress);
 
-                if (data.completed) {
+                if (data.newly_completed) {
                     setPopup(`🏅 ${data.name}`);
                     onUpdate?.();
-                }
+                }               
 
                 return data;
             } catch (err) {
