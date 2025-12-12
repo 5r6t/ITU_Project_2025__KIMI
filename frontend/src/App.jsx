@@ -9,14 +9,14 @@ import { createKimiController } from "./controllers/kimiController";
 import { createPinballController } from "./controllers/pinballController";
 
 import { useAchievements } from "./meta_components/AchievementContext";
-
+import trophy from "./assets/trophy.svg";
 import './styles/App.css';
 
 export default function App() {
 
   const { completeAchievement } = useAchievements();
 
-  const [showInventory, setShowInventory]       = useState(false);
+  const [showInventory, setShowInventory] = useState(false);
   const [extensionCatcher, setExtensionCatcher] = useState(false);
 
   const [kimi, setKimi] = useState({ hunger: 0, clean: 0, energy: 0 });
@@ -38,52 +38,57 @@ export default function App() {
   }, []);
 
   return (
-    <div>
-      <div>
-        <Header title="Kimi Demo" onClose={handleClose} />
-      </div>
+    <div className="page">
+      <Header title="Kimi" onClose={handleClose}>
+        <Link to="/achievements"><img src={trophy} alt=""></img></Link>
+      </Header>
+
       <div className="app-container">
-        <Inventory isOpen={showInventory} onClose={toggleInventory}/>
 
-        <div>
-          <Link to="/pinball">
-            <button>
-              Spustit Pinball 🎮
+        <div className="left_large_scene?">
+          <button onClick={() => ctrl.feed()}> Feed Kimi 🍗 </button>
+          <button onClick={() => ctrl.clean()}> Clean Kimi 🧼 </button>
+          <button onClick={() => { ctrl.sleep(); completeAchievement(5); }} > Make Kimi sleep 💤</button>
+          <button onClick={() => ctrl.exercise()}> Make Kimi exercise ⚡</button>
+          <div className="Games">
+            <Link to="/pinball">
+              <button>
+                Spustit Pinball 🎮
+              </button>
+            </Link>
+            <Link to="/pizza" style={{ marginLeft: 8 }}>
+              <button>
+                Decorate Pizza 🍕
+              </button>
+            </Link>
+            <button style={{ marginLeft: "10px" }} onClick={() => pinball.toggle(extensionCatcher)}>
+              Catcher
             </button>
-          </Link>
-          <Link to="/pizza" style={{ marginLeft: 8 }}>
-            <button>
-              Decorate Pizza 🍕
-            </button>
-          </Link>
+            <span style={{ margin: "10px" }}>
+              Stav: <b>{extensionCatcher ? "Zapnuto" : "Vypnuto"}</b>
+            </span>
+            <Link to="/solitaire"><button>Play Solitaire</button></Link>
+          </div>
         </div>
-        <div style={{ marginTop: "8px" }}>
-          <button onClick={() => pinball.toggle(extensionCatcher)}>
-            Catcher
-          </button>
-          <span style={{ marginLeft: "10px" }}>
-            Stav: <b>{extensionCatcher ? "Zapnuto" : "Vypnuto"}</b>
-          </span>
+        
+        <div className="right_top_kimi_stats?">
+          <StatusBar label="🍗 Hunger" value={kimi.hunger} color="#D02121" />
+          <StatusBar label="🧼 Clean" value={kimi.clean} color="#59E817" />
+          <StatusBar label="💤 Energy" value={kimi.energy} color="#EFE826" />
         </div>
+        <div className="right_bottom_inventory?">
+          <button onClick={toggleInventory}> Inventory 🎒 </button>
 
-        <div>
-          <Link to="/achievements"><button>Achievements 🏅</button></Link>
         </div>
 
-        <div>
-          <Link to="/solitaire"><button>Play Solitaire</button></Link>
-        </div>
+        <Inventory
+          isOpen={showInventory}
+          onClose={toggleInventory}
+          onUpdateKimiState={setKimi}
+        />
 
-        <button onClick={toggleInventory}> Inventory 🎒 </button>
+        
 
-        <button onClick={() => ctrl.feed()}> Feed Kimi 🍗 </button>
-        <button onClick={() => ctrl.clean()}> Clean Kimi 🧼 </button>
-        <button onClick={() => { ctrl.sleep(); completeAchievement(5); }} > Make Kimi sleep 💤</button>
-        <button onClick={() => ctrl.exercise()}> Make Kimi exercise ⚡</button>
-
-        <StatusBar label="🍗 Hunger" value={kimi.hunger} color="#D02121" />
-        <StatusBar label="🧼 Clean"  value={kimi.clean}  color="#59E817" />
-        <StatusBar label="💤 Energy" value={kimi.energy} color="#EFE826" />
       </div>
     </div>
   );

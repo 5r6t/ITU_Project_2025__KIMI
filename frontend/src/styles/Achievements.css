@@ -1,4 +1,5 @@
 .achieve {
+  flex: 1; /* expand to page */
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -7,9 +8,7 @@
   padding: 10px;
   text-align: center;
   font-family: sans-serif;
-
   background: royalblue;
-  height: 100vh;
 
   /* hide scrollbar */
   overflow: hidden;
@@ -17,7 +16,7 @@
 }
 
 button {
-  padding: "8px 14px";
+  padding: 8px 14px;
   margin-bottom: 16px;
   font-size: 14pt;
 }

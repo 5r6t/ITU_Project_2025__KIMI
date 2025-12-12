@@ -24,21 +24,43 @@
 
 .header-title {
   margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 2rem;
+  font-weight: 900;
+}
+.header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.header-close {
+.header-items {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-items>a,
+.header-items button {
+  width: 4rem;
+  height: 2.5rem;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
   margin: 0;
-  background: transparent;
+  background: rgb(0, 0, 0);
   color: white;
   border: none;
   font-size: 1.6rem;
-  cursor: pointer;
   line-height: 1;
-  transition: color 0.2s ease;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  border-radius: 10px;
 }
 
-.header-close:hover {
+
+.header-items>a:hover, .header-items>button:hover{
   color: #ff6b6b;
 }

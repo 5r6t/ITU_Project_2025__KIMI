@@ -1,62 +1,48 @@
-html, body, #root { /*DON'T DELETE -- CHROME DEPENDENCY*/
-  height: 100%;
-  width: 100%;
-  margin: 0;
+html,
+body,
+#root {
+    /*DON'T DELETE -- CHROME DEPENDENCY*/
+    width: 100%;
+    height: 100%;
 }
-.app-container {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: center;
-  width: 100%;
-  padding: 10px;
-  text-align: center;
-  font-family: sans-serif;
+#root {
+    display: flex;
+    flex-direction: column;
+}
 
-  background: royalblue;
-  box-sizing: border-box;
+.page {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.app-container {
+    flex: 1; /* expand page */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    width: 100%;
+    padding: 10px;
+    text-align: center;
+    font-family: sans-serif;
+
+    background: royalblue;
+    box-sizing: border-box;
 }
 
 button {
-  padding: 8px 14px;
-  margin-bottom: 16px;
-  font-size: 14pt;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+    padding: 8px 14px;
+    margin-bottom: 16px;
+    font-size: 14pt;
 }
 
 .card {
-  padding: 2em;
+    padding: 2em;
 }
 
 .read-the-docs {
-  color: #888;
+    color: #888;
 }
 
 .inventory-panel {
@@ -64,15 +50,18 @@ button {
     position: fixed;
     top: 0;
     right: 0;
-    width: 300px; /* Šířka panelu */
-    height: 100vh; /* Použijeme 100vh, aby vyplnil celou výšku */
-    background-color: #333; /* Tmavé pozadí */
+    width: 300px;
+    /* Šířka panelu */
+    height: 100vh;
+    /* Použijeme 100vh, aby vyplnil celou výšku */
+    background-color: #333;
+    /* Tmavé pozadí */
     box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
     color: white;
     z-index: 1000;
     padding: 20px;
-    box-sizing: border-box; 
-    
+    box-sizing: border-box;
+
     /* Přechod pro plynulé vysunutí/zasunutí */
     transform: translateX(100%);
     transition: transform 0.3s ease-in-out;
@@ -80,7 +69,8 @@ button {
 }
 
 .inventory-panel.open {
-    transform: translateX(0); /* Zobrazí panel */
+    transform: translateX(0);
+    /* Zobrazí panel */
 }
 
 .panel-header {
@@ -105,6 +95,7 @@ button {
     cursor: pointer;
     padding: 0 5px;
 }
+
 .close-button:hover {
     color: #e74c3c;
 }
@@ -122,7 +113,7 @@ button {
     gap: 8px;
 }
 
-.inventory-item-card > span:first-of-type {
+.inventory-item-card>span:first-of-type {
     align-self: flex-start;
 }
 
@@ -135,13 +126,14 @@ button {
 .use-button {
     padding: 8px 12px;
     cursor: pointer;
-    background-color: #2ecc71; 
+    background-color: #2ecc71;
     color: white;
     border: none;
     border-radius: 4px;
     font-size: 0.9em;
     align-self: flex-start;
 }
+
 .use-button:disabled {
     background-color: #7f8c8d;
     cursor: not-allowed;

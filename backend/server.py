@@ -95,19 +95,19 @@ def get_inventory_api():
 @app.route("/use_item/<item_name>", methods=["POST"])
 def use_item_api(item_name):
     """Použije položku z inventáře a aplikuje její efekt na Kimiho."""
-    
+
     ingredient_id = get_ingredient_by_name(item_name)
     if not ingredient_id:
         return jsonify({"message": f"Položka '{item_name}' nebyla nalezena v DB."}), 404
 
-    # Special handling for saved pizzas stored as Ingredient with name "Pizza:<id>"
-    if isinstance(item_name, str) and item_name.startswith("Pizza:"):
-        # extract id
-        try:
-            pizza_id = int(item_name.split(':', 1)[1])
-        except Exception:
-            return jsonify({"message": "Neplatný formát Pizza ID."}), 400
+    # Rozpoznání uložených pizz: očekáváme formát "<název_pizzy>:<id>"
+    pizza_id = None
+    if isinstance(item_name, str) and ":" in item_name and "://" not in item_name:
+        candidate = item_name.split(":")[-1]
+        if candidate.isdigit():
+            pizza_id = int(candidate)
 
+    if pizza_id is not None:
         saved = get_saved_pizza(pizza_id)
         if not saved:
             return jsonify({"message": "Uložená pizza nenalezena."}), 404

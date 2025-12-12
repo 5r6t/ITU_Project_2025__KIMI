@@ -41,9 +41,9 @@ export default function Achievements() {
   const handleClose = () => navigate("/");
 
   return (
-    <AchievementProvider>
+    <div className="page">
       <Header title="Achievements" onClose={handleClose} />
       <AchievementPageContent />
-    </AchievementProvider>
+    </div>
   );
 }
