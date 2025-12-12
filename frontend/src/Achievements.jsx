@@ -5,13 +5,17 @@ import AchievementBox from "./meta_components/AchievementBox";
 import { AchievementProvider, useAchievements } from "./meta_components/AchievementContext";
 import "./Achievements.css";
 
-function AchievementPageContent({ achievements }) {
-  const { completeAchievement } = useAchievements();
+function AchievementPageContent() {
+  const { completeAch, loadList } = useAchievements();
+  const [achievements, setAchievements] = useState({ unlocked: [], locked: [] });
 
-  const handleTest = () => {
-    // test unlocks the first achievement (ID = 1)
-    completeAchievement(1);
+  const refresh = () => {
+    loadList().then(data => setAchievements(data));
   };
+
+  useEffect(() => {
+    refresh();
+  }, []);
 
   return (
     <div className="achieve">
@@ -27,7 +31,7 @@ function AchievementPageContent({ achievements }) {
         ))}
       </AchievementBox>
 
-      <button onClick={handleTest}>TEST -- Complete Achievement</button>
+      <button onClick={() => {completeAch(1); refresh();}}>TEST -- Complete Achievement</button>
     </div>
   );
 }
@@ -35,26 +39,11 @@ function AchievementPageContent({ achievements }) {
 export default function Achievements() {
   const navigate = useNavigate();
   const handleClose = () => navigate("/");
-  const [achievements, setAchievements] = useState({ unlocked: [], locked: [] });
-
-  const fetchAchievements = () => {
-    fetch("http://127.0.0.1:5000/get_achievements")
-      .then((res) => res.json())
-      .then((data) => setAchievements(data))
-      .catch((err) => console.error("Failed to load achievements:", err));
-  };
-
-  useEffect(() => {
-    fetchAchievements();
-  }, []);
 
   return (
-    <AchievementProvider onUpdate={fetchAchievements}>
+    <AchievementProvider>
       <Header title="Achievements" onClose={handleClose} />
-      <AchievementPageContent
-        achievements={achievements}
-        fetchAchievements={fetchAchievements}
-      />
+      <AchievementPageContent />
     </AchievementProvider>
   );
 }

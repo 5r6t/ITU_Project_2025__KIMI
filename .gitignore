@@ -9,4 +9,5 @@ frontend/README.md
 frontend/vite.config.js
 frontend/package.json
 backend/__pycache__
+backend/database.db
 *.pyc

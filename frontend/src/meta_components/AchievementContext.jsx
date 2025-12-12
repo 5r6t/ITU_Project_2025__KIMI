@@ -1,33 +1,26 @@
-import { createContext, useContext, useState, useCallback } from "react";
+// src/meta_components/AchievementContext.jsx
+
+import { createContext, useContext, useState, useMemo } from "react";
+import { createAchievementController } from "../controllers/achievementController";
 import AchievementInfo from "./AchievementInfo";
 
-const AchievementContext = createContext();
+const AchievementContext = createContext(null);
 
 export function AchievementProvider({ children, onUpdate }) {
   const [popup, setPopup] = useState(null);
 
-  const completeAchievement = useCallback(async (id, newProgress = 100) => {
-    try {
-      const res = await fetch(
-        `http://127.0.0.1:5000/update_achievement/${id}/${newProgress}`,
-        { method: "POST" }
-      );
-      const data = await res.json();
-      if (data.completed) {
-        setPopup(`🏅 ${data.name}`);
-        onUpdate?.(); // refresh parent if needed
-      }
-      return data;
-    } catch (err) {
-      console.error("Achievement update failed:", err);
-    }
+  const controller = useMemo(() => {
+    return createAchievementController({ setPopup, onUpdate });
   }, [onUpdate]);
 
   return (
-    <AchievementContext.Provider value={{ completeAchievement }}>
+    <AchievementContext.Provider value={controller}>
       {children}
       {popup && (
-        <AchievementInfo title={popup} onClose={() => setPopup(null)} />
+        <AchievementInfo
+          title={popup}
+          onClose={() => setPopup(null)}
+        />
       )}
     </AchievementContext.Provider>
   );

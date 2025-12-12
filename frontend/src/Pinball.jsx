@@ -3,7 +3,7 @@ import Matter, { Engine, Render, Runner, Bodies, Body, Composite, Constraint, Ev
 import Header from "./meta_components/Header";
 import { useNavigate } from 'react-router-dom';
 import axios from "axios";
-import { AchievementProvider, useAchievements } from "./meta_components/AchievementContext";
+import { useAchievements } from "./meta_components/AchievementContext";
 
 
 const API = axios.create({ baseURL: "http://127.0.0.1:5000/api/v1" });
