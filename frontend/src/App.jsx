@@ -56,6 +56,11 @@ export default function App() {
                 Spustit Pinball 🎮
               </button>
             </Link>
+            <Link to="/wallball" style={{ marginLeft: 8 }}>
+              <button>
+                Spustit Wallball 🧱
+              </button>
+            </Link>
             <Link to="/pizza" style={{ marginLeft: 8 }}>
               <button>
                 Decorate Pizza 🍕
