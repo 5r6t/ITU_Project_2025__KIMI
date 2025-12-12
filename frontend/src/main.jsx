@@ -8,9 +8,9 @@ import Solitaire from './Solitaire.jsx'
 import Inventory from './Inventory.jsx'
 import { AchievementProvider } from "./meta_components/AchievementContext";
 
-// 2.11. Pinball things
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Pinball from './Pinball'
+import Wallball from './Wallball.jsx'
 import PizzaDecor from './PizzaDecor.jsx'
 import PizzaBaking from './PizzaBaking.jsx'
 
@@ -22,6 +22,7 @@ createRoot(document.getElementById('root')).render(
         <Routes>
           <Route path="/" element={<App />} />
           <Route path="/pinball" element={<Pinball />} />
+          <Route path="/wallball" element={<Wallball />} />
           <Route path="/pizza" element={<PizzaDecor />} />
           <Route path="/pizza-baking" element={<PizzaBaking />} />
           <Route path="/inventory" element={<Inventory />} />

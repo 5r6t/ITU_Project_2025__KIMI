@@ -1,0 +1,238 @@
+/* Celkový kontejner pro hru - Flexbox pro 3 sloupce */
+.wallball-container {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 100vh;
+  background-color: #222;
+  color: white;
+  overflow: hidden; /* Aby nám nikde nic nepřetékalo */
+}
+
+/* --- LEVÝ PANEL: INVENTORY --- */
+.wb-left-panel {
+  width: 250px;
+  background-color: #333;
+  border-right: 2px solid #555;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* --- INVENTORY ITEMS --- */
+.wb-inventory-item {
+  display: flex;
+  align-items: center;       /* Zarovnat na střed svisle */
+  justify-content: space-between; /* Ikonka vlevo, číslo vpravo */
+  background: #444;
+  margin-bottom: 10px;
+  padding: 10px 15px;
+  border: 1px solid #666;
+  border-radius: 8px;
+  cursor: grab;
+  transition: all 0.2s;
+  user-select: none; /* Aby se neoznačoval text při dragování */
+}
+
+.wb-inventory-item:hover {
+  background-color: #555;
+  border-color: #777;
+}
+
+/* Styl pro samotnou ikonku */
+.wb-piece-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Styl pro číslo (počet) */
+.wb-piece-count {
+  font-family: 'Courier New', monospace;
+  font-size: 18px;
+  font-weight: bold;
+  background-color: #222;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 12px;
+  min-width: 30px;
+  text-align: center;
+}
+
+/* --- PROSTŘEDNÍ PANEL: HERNÍ PLOCHA --- */
+.wb-middle-panel {
+  flex: 1;
+  display: flex;
+  justify-content: center; /* Vycentrování hrací plochy */
+  align-items: center;
+  background-color: #1a1a1a;
+  position: relative;
+}
+
+/* Kontejner pro hru - drží Grid i Canvas na sobě */
+.wb-game-wrapper {
+  width: 600px;
+  height: 720px;
+  position: relative;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  border: 4px solid #555;
+}
+
+/* Vizuální Grid (Šachovnice) - HTML podklad */
+.wb-grid-background {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr); /* 5 sloupců */
+  grid-template-rows: repeat(6, 1fr);    /* 6 řádků */
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1; /* Nejnižší vrstva */
+}
+
+.wb-grid-cell {
+  width: 120px;
+  height: 120px;
+}
+
+.wb-cell-light { background-color: #666666; }
+.wb-cell-dark  { background-color: #444444; }
+
+/* Canvas (Matter.js) - musí být průhledný a nahoře */
+.wb-canvas-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2; /* Nad gridem */
+  pointer-events: none; /* Aby šlo klikat skrz canvas (budeme řešit později) */
+}
+
+/* --- PRAVÝ PANEL: OVLÁDÁNÍ --- */
+.wb-right-panel {
+  width: 250px;
+  background-color: #333;
+  border-left: 2px solid #555;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.wb-info-box {
+  background: #222;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #555;
+}
+
+.wb-btn {
+  padding: 12px;
+  font-size: 16px;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+
+.wb-btn-start { background-color: #27ae60; color: white; }
+.wb-btn-start:hover { background-color: #2ecc71; }
+
+.wb-btn-reset { background-color: #c0392b; color: white; }
+.wb-btn-reset:hover { background-color: #e74c3c; }
+
+.wb-btn-levels { background-color: #2980b9; color: white; }
+.wb-btn-levels:hover { background-color: #3498db; }
+
+
+
+/* --- LEVEL MENU OVERLAY --- */
+.wb-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.85); /* Tmavé pozadí */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* Musí být úplně nahoře */
+  backdrop-filter: blur(5px); /* Rozmazání pozadí pro hezký efekt */
+}
+
+.wb-modal-content {
+  background-color: #333;
+  border: 2px solid #555;
+  border-radius: 12px;
+  padding: 30px;
+  width: 500px;
+  max-width: 90%;
+  text-align: center;
+  box-shadow: 0 0 30px rgba(0,0,0,0.7);
+}
+
+.wb-modal-content h2 {
+  color: white;
+  margin-top: 0;
+  margin-bottom: 20px;
+  text-transform: uppercase; /* Volitelné: vypadá to víc jako nadpis hry */
+  letter-spacing: 1px;
+}
+
+.wb-level-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.wb-level-btn {
+  width: 60px;
+  height: 60px;
+  background-color: #444;
+  border: 2px solid #666;
+  border-radius: 8px;
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.wb-level-btn:hover:not(:disabled) {
+  background-color: #3498db;
+  border-color: #5dade2;
+  transform: scale(1.1);
+}
+
+/* Aktuálně vybraný level */
+.wb-level-btn.active {
+  background-color: #27ae60;
+  border-color: #2ecc71;
+}
+
+/* Zamčený level */
+.wb-level-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  background-color: #222;
+  border-color: #333;
+}
+
+.wb-close-btn {
+  margin-top: 20px;
+  padding: 10px 30px;
+  background-color: #c0392b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+.wb-close-btn:hover { background-color: #e74c3c; }
