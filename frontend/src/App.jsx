@@ -45,7 +45,7 @@ export default function App() {
 
       <div className="app-container">
 
-        <div className="left_large_scene?">
+        <div className="scene">
           <button onClick={() => ctrl.feed()}> Feed Kimi 🍗 </button>
           <button onClick={() => ctrl.clean()}> Clean Kimi 🧼 </button>
           <button onClick={() => { ctrl.sleep(); completeAchievement(5); }} > Make Kimi sleep 💤</button>
@@ -71,12 +71,12 @@ export default function App() {
           </div>
         </div>
         
-        <div className="right_top_kimi_stats?">
+        <div className="stats">
           <StatusBar label="🍗 Hunger" value={kimi.hunger} color="#D02121" />
           <StatusBar label="🧼 Clean" value={kimi.clean} color="#59E817" />
           <StatusBar label="💤 Energy" value={kimi.energy} color="#EFE826" />
         </div>
-        <div className="right_bottom_inventory?">
+        <div className="inventory">
           <button onClick={toggleInventory}> Inventory 🎒 </button>
 
         </div>
