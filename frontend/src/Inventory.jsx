@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import './App.css'; 
+import './styles/Inventory.css'; 
 
 // Pomocná komponenta pro zobrazení karty předmětu
 function ItemCard({ item, onUseItem }) {

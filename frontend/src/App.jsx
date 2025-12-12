@@ -10,11 +10,11 @@ import { createPinballController } from "./controllers/pinballController";
 
 import { useAchievements } from "./meta_components/AchievementContext";
 
-import './App.css';
+import './styles/App.css';
 
 export default function App() {
 
-  const { completeAch } = useAchievements();
+  const { completeAchievement } = useAchievements();
 
   const [showInventory, setShowInventory]       = useState(false);
   const [extensionCatcher, setExtensionCatcher] = useState(false);
@@ -78,11 +78,11 @@ export default function App() {
 
         <button onClick={() => ctrl.feed()}> Feed Kimi 🍗 </button>
         <button onClick={() => ctrl.clean()}> Clean Kimi 🧼 </button>
-        <button onClick={() => { ctrl.sleep(); completeAch(5); }} > Make Kimi sleep 💤</button>
+        <button onClick={() => { ctrl.sleep(); completeAchievement(5); }} > Make Kimi sleep 💤</button>
         <button onClick={() => ctrl.exercise()}> Make Kimi exercise ⚡</button>
 
         <StatusBar label="🍗 Hunger" value={kimi.hunger} color="#D02121" />
-        <StatusBar label="🧼 Clean" value={kimi.clean} color="#59E817" />
+        <StatusBar label="🧼 Clean"  value={kimi.clean}  color="#59E817" />
         <StatusBar label="💤 Energy" value={kimi.energy} color="#EFE826" />
       </div>
     </div>

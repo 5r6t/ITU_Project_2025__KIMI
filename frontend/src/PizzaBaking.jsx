@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Header from './meta_components/Header';
 import axios from 'axios';
-import './PizzaBaking.css';
+import './styles/PizzaBaking.css';
 
 const TOPPING_EFFECTS = {
   tomato: { hunger: 8, clean: 2 },

@@ -1,4 +1,4 @@
-import "./StatusBar.css";
+import "../styles/StatusBar.css";
 
 export default function StatusBar({ label, value, color }) {
   return (

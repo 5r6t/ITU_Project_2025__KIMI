@@ -2,7 +2,7 @@ import { AchievementModel } from "../models/achievementModel";
 
 export function createAchievementController({ setPopup, onUpdate }) {
     return {
-        completeAch: async (id, newProgress = 100) => {
+        completeAchievement: async (id, newProgress = 100) => {
             try {
                 const data = await AchievementModel.update(id, newProgress);
 

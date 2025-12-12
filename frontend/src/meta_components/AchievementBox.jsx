@@ -1,6 +1,6 @@
 // AchievementBox.jsx
 import { useState } from "react";
-import "./AchievementBox.css";
+import "../styles/AchievementBox.css";
 
 export default function AchievementBox({ title, children }) {
   const [isOpen, setIsOpen] = useState(true);

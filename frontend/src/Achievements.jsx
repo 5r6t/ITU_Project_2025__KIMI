@@ -3,10 +3,10 @@ import { useNavigate } from "react-router-dom";
 import Header from "./meta_components/Header";
 import AchievementBox from "./meta_components/AchievementBox";
 import { AchievementProvider, useAchievements } from "./meta_components/AchievementContext";
-import "./Achievements.css";
+import "./styles/Achievements.css";
 
 function AchievementPageContent() {
-  const { completeAch, loadList } = useAchievements();
+  const { completeAchievement, loadList } = useAchievements();
   const [achievements, setAchievements] = useState({ unlocked: [], locked: [] });
 
   const refresh = () => {
@@ -31,7 +31,7 @@ function AchievementPageContent() {
         ))}
       </AchievementBox>
 
-      <button onClick={() => {completeAch(1); refresh();}}>TEST -- Complete Achievement</button>
+      <button onClick={() => {completeAchievement(1); refresh();}}>TEST -- Complete Achievement</button>
     </div>
   );
 }

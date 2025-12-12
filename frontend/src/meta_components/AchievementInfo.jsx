@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import "./AchievementInfo.css";
+import "../styles/AchievementInfo.css";
 
 export default function AchievementInfo({ title, onClose }) {
   useEffect(() => {

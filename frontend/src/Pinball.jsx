@@ -4,7 +4,7 @@ import Header from "./meta_components/Header";
 import { useNavigate } from 'react-router-dom';
 import axios from "axios";
 import { useAchievements } from "./meta_components/AchievementContext";
-
+import './styles/Pinball.css';
 
 const API = axios.create({ baseURL: "http://127.0.0.1:5000/api/v1" });
 

@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import Header from "./meta_components/Header";
-import './Solitaire.css';
+import './styles/Solitaire.css';
 
 export default function Solitaire () {
     const navigate = useNavigate();

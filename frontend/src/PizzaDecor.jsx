@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from './meta_components/Header';
 import axios from 'axios';
-import './PizzaDecor.css';
+import './styles/PizzaDecor.css';
 
 const PALETTE = [
   { type: 'tomato', label: 'Tomato', emoji: '🍅' },
