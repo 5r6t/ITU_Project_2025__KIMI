@@ -229,6 +229,53 @@ def ext_catcher_post():
     return jsonify(set_extension_catcher(ADMIN_ID, enabled))
 
 
+# ==========================================
+# --- WALLBALL API (LEVEL SYSTEM) ---
+# ==========================================
+
+# Dočasná paměť pro postup (po restartu serveru se vrátí na 1)
+# Pokud to chceš ukládat trvale, musel bys tady volat svou databázi.
+wallball_state = {
+    "max_unlocked_level": 1
+}
+
+@app.route('/api/v1/wallball/progress', methods=['GET'])
+def get_wallball_progress():
+    """
+    Vrátí aktuální postup hráče (odemčené levely).
+    """
+    # Zde bys v budoucnu četl z DB: SELECT max_level FROM wallball_progress WHERE user_id = ...
+    return jsonify(wallball_state)
+
+@app.route('/api/v1/wallball/complete_level', methods=['POST'])
+def complete_wallball_level():
+    """
+    Zaznamená dokončení levelu a odemkne další.
+    """
+    data = request.json
+    completed_level_id = data.get('level_id')
+    
+    if not completed_level_id:
+        return jsonify({"success": False, "error": "Missing level_id"}), 400
+
+    current_max = wallball_state["max_unlocked_level"]
+    next_level_unlocked = False
+
+    # Pokud hráč dokončil svůj aktuální maximální level, odemkneme level + 1
+    if completed_level_id == current_max:
+        wallball_state["max_unlocked_level"] = current_max + 1
+        next_level_unlocked = True
+        print(f"Wallball: Hráč dokončil level {completed_level_id}, odemykám {current_max + 1}")
+    
+    # Zde bys v budoucnu ukládal do DB: UPDATE wallball_progress SET ...
+
+    return jsonify({
+        "success": True, 
+        "next_level_unlocked": next_level_unlocked,
+        "max_unlocked_level": wallball_state["max_unlocked_level"]
+    })
+
+
 # --- PIZZA SAVE API ---
 @app.route("/pizza/save", methods=["POST"])
 def pizza_save():
