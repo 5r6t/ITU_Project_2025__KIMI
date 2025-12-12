@@ -1,58 +1,40 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom"; // 2.11. Přidání odkazu na Pinball stránku
+
 import Header from "./meta_components/Header";
 import StatusBar from "./meta_components/StatusBar";
 import Inventory from "./Inventory";
 
 import { createKimiController } from "./controllers/kimiController";
+import { createPinballController } from "./controllers/pinballController";
+
 import { useAchievements } from "./meta_components/AchievementContext";
 
-import { Link } from "react-router-dom"; // 2.11. Přidání odkazu na Pinball stránku
-import axios from "axios";
 import './App.css';
 
 export default function App() {
+
   const { completeAch } = useAchievements();
 
-  const [showInventory, setShowInventory] = useState(false);
+  const [showInventory, setShowInventory]       = useState(false);
   const [extensionCatcher, setExtensionCatcher] = useState(false);
+
+  const [kimi, setKimi] = useState({ hunger: 0, clean: 0, energy: 0 });
+
+  const ctrl = createKimiController(setKimi);
+  const pinball = createPinballController(setExtensionCatcher);
 
   const toggleInventory = () => {
     setShowInventory(prev => !prev);
   }
 
   const handleClose = () => {
-    console.log("Header closed!");
-    // navigate away, hide modal, etc.
+    console.log("Can't close the app!");
   };
-
-  // Loading extension catcher setting
-  const loadExtensionCatcher = async () => {
-    try {
-      const res = await axios.get("http://127.0.0.1:5000/api/v1/pinball/extension_catcher");
-      setExtensionCatcher(res.data.extension_catcher);
-    } catch (err) {
-      console.error("Failed to load extension_catcher:", err);
-    }
-  };
-
-  // Setting (enable/disable)
-  const setExtension = async (enabled) => {
-    try {
-      const res = await axios.post("http://127.0.0.1:5000/api/v1/pinball/extension_catcher", {
-        enabled: enabled,
-      });
-      setExtensionCatcher(res.data.extension_catcher);
-    } catch (err) {
-      console.error("Failed to save extension_catcher:", err);
-    }
-  };
-
-  const [kimi, setKimi] = useState({ hunger: 0, clean: 0, energy: 0 });
-  const ctrl = createKimiController(setKimi);
 
   useEffect(() => {
     ctrl.load();
-    loadExtensionCatcher();
+    pinball.load();
   }, []);
 
   return (
@@ -76,7 +58,7 @@ export default function App() {
           </Link>
         </div>
         <div style={{ marginTop: "8px" }}>
-          <button onClick={() => setExtension(!extensionCatcher)}>
+          <button onClick={() => pinball.toggle(extensionCatcher)}>
             Catcher
           </button>
           <span style={{ marginLeft: "10px" }}>
