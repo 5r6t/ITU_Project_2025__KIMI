@@ -1,14 +1,18 @@
 import "../styles/StatusBar.css";
 
 export default function StatusBar({ label, value, color }) {
+  const clampedValue = Math.min(Math.max(value, 0), 100); // keep within 0-100 for rendering
+
   return (
     <div className="statusbar">
-      <p style={{ margin: 0 }}>{label}: {value}</p>
       <div className="statusbar-track">
         <div
           className="statusbar-fill"
-          style={{ width: `${value}%`, background: color }} // width above 100% stays 100%
+          style={{ width: `${clampedValue}%`, background: color }}
         ></div>
+        <span className="statusbar-label">
+          {label}: {value}
+        </span>
       </div>
     </div>
   );

@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom"; // 2.11. Přidání odkazu na Pinball stránku
+import { useNavigate } from "react-router-dom";
 
 import Header from "./meta_components/Header";
 import StatusBar from "./meta_components/StatusBar";
 import Inventory from "./Inventory";
+import { Scene } from "./meta_components/Scene";
 
 import { createKimiController } from "./controllers/kimiController";
 import { createPinballController } from "./controllers/pinballController";
+import { createSceneController } from "./controllers/sceneController";
 
 import { useAchievements } from "./meta_components/AchievementContext";
 import trophy from "./assets/trophy.svg";
@@ -31,11 +34,17 @@ export default function App() {
   const handleClose = () => {
     console.log("Can't close the app!");
   };
-
   useEffect(() => {
     ctrl.load();
     pinball.load();
   }, []);
+
+
+  const navigate = useNavigate();
+  const sceneCtrl = createSceneController({
+    navigate,
+    kimiCtrl: ctrl,
+  });
 
   return (
     <div className="page">
@@ -45,7 +54,9 @@ export default function App() {
 
       <div className="app-container">
 
-        <div className="scene">
+        <div className="scene card">
+          <Scene controller={sceneCtrl} />
+
           <button onClick={() => ctrl.feed()}> Feed Kimi 🍗 </button>
           <button onClick={() => ctrl.clean()}> Clean Kimi 🧼 </button>
           <button onClick={() => { ctrl.sleep(); completeAchievement(5); }} > Make Kimi sleep 💤</button>
@@ -76,12 +87,12 @@ export default function App() {
           </div>
         </div>
         
-        <div className="stats">
-          <StatusBar label="🍗 Hunger" value={kimi.hunger} color="#D02121" />
-          <StatusBar label="🧼 Clean" value={kimi.clean} color="#59E817" />
-          <StatusBar label="💤 Energy" value={kimi.energy} color="#EFE826" />
+        <div className="stats card">
+          <StatusBar label="🍗 Hunger"  value={kimi.hunger} color="#4FA3FF" />
+          <StatusBar label="🧼 Clean"   value={kimi.clean} color="#6FD6B6" />
+          <StatusBar label="💤 Energy"  value={kimi.energy} color="#B58CFF" />
         </div>
-        <div className="inventory">
+        <div className="inventory card">
           <button onClick={toggleInventory}> Inventory 🎒 </button>
 
         </div>
