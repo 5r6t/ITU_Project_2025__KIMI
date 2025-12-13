@@ -10,7 +10,7 @@ export default function SceneCarousel({ items = [], x, y }) {
     const next = () => setIndex((i) => (i + 1) % itemCount);
     const prev = () => setIndex((i) => (i - 1 + itemCount) % itemCount);
     const current = items[index % itemCount];
-
+    // https://www.alt-codes.net/triangle-symbols
     return (
         <div
             className="carousel-wrapper"

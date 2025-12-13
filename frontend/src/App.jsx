@@ -98,8 +98,10 @@ export default function App() {
         
         <div className="stats card">
           <StatusBar label="🍗 Hunger"  value={kimi.hunger} color="#4FA3FF" />
-          <StatusBar label="🧼 Clean"   value={kimi.clean} color="#6FD6B6" />
+          <StatusBar label="🧼 Clean"   value={kimi.clean}  color="#6FD6B6" />
           <StatusBar label="💤 Energy"  value={kimi.energy} color="#B58CFF" />
+
+          MAYBE ICON OF THE PET?
         </div>
 
         <div className="inventory card">
