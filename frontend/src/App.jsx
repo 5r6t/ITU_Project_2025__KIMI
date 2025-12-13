@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom"; // 2.11. Přidání odkazu na Pinball stránku
+import { Link } from "react-router-dom"; 
 import { useNavigate } from "react-router-dom";
 
 import Header from "./meta_components/Header";
 import StatusBar from "./meta_components/StatusBar";
-import Inventory from "./Inventory";
+import Inventory from "./Inventory"; // Importujeme Inventory
 import { Scene } from "./meta_components/Scene";
 
 import { createKimiController } from "./controllers/kimiController";
@@ -19,7 +19,7 @@ export default function App() {
 
   const { completeAchievement } = useAchievements();
 
-  const [showInventory, setShowInventory] = useState(false);
+  // ODSTRANĚNO: const [showInventory, setShowInventory] = useState(false);
   const [extensionCatcher, setExtensionCatcher] = useState(false);
 
   const [kimi, setKimi] = useState({ hunger: 0, clean: 0, energy: 0 });
@@ -27,9 +27,7 @@ export default function App() {
   const ctrl = createKimiController(setKimi);
   const pinball = createPinballController(setExtensionCatcher);
 
-  const toggleInventory = () => {
-    setShowInventory(prev => !prev);
-  }
+  // ODSTRANĚNO: const toggleInventory ...
 
   const handleClose = () => {
     console.log("Can't close the app!");
@@ -38,7 +36,6 @@ export default function App() {
     ctrl.load();
     pinball.load();
   }, []);
-
 
   const navigate = useNavigate();
   const sceneCtrl = createSceneController({
@@ -62,21 +59,11 @@ export default function App() {
           <button onClick={() => { ctrl.sleep(); completeAchievement(5); }} > Make Kimi sleep 💤</button>
           <button onClick={() => ctrl.exercise()}> Make Kimi exercise ⚡</button>
           <div className="Games">
-            <Link to="/pinball">
-              <button>
-                Spustit Pinball 🎮
-              </button>
-            </Link>
-            <Link to="/wallball" style={{ marginLeft: 8 }}>
-              <button>
-                Spustit Wallball 🧱
-              </button>
-            </Link>
-            <Link to="/pizza" style={{ marginLeft: 8 }}>
-              <button>
-                Decorate Pizza 🍕
-              </button>
-            </Link>
+            {/* ... odkazy na hry zůstávají stejné ... */}
+            <Link to="/pinball"><button>Spustit Pinball 🎮</button></Link>
+            <Link to="/wallball" style={{ marginLeft: 8 }}><button>Spustit Wallball 🧱</button></Link>
+            <Link to="/breaker" style={{ marginLeft: 8 }}><button>Brick Breaker 🔨</button></Link>
+            <Link to="/pizza" style={{ marginLeft: 8 }}><button>Decorate Pizza 🍕</button></Link>
             <button style={{ marginLeft: "10px" }} onClick={() => pinball.toggle(extensionCatcher)}>
               Catcher
             </button>
@@ -92,19 +79,15 @@ export default function App() {
           <StatusBar label="🧼 Clean"   value={kimi.clean} color="#6FD6B6" />
           <StatusBar label="💤 Energy"  value={kimi.energy} color="#B58CFF" />
         </div>
+
         <div className="inventory card">
-          <button onClick={toggleInventory}> Inventory 🎒 </button>
-
+            <Inventory
+              isOpen={true} // Vždy otevřeno (načte data při mountu)
+              onClose={() => {}} // Není potřeba
+              onUpdateKimiState={setKimi}
+              isEmbedded={true} // Zapne embedded styl
+            />
         </div>
-
-        <Inventory
-          isOpen={showInventory}
-          onClose={toggleInventory}
-          onUpdateKimiState={setKimi}
-        />
-
-        
-
       </div>
     </div>
   );

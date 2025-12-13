@@ -13,6 +13,7 @@ import Pinball from './Pinball'
 import Wallball from './Wallball.jsx'
 import PizzaDecor from './PizzaDecor.jsx'
 import PizzaBaking from './PizzaBaking.jsx'
+import Breaker from './Breaker.jsx'
 
 // 2.11. Přidání routování na komponenty App a Pinball namísto vykreslení pouze App
 createRoot(document.getElementById('root')).render(
@@ -25,6 +26,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/wallball" element={<Wallball />} />
           <Route path="/pizza" element={<PizzaDecor />} />
           <Route path="/pizza-baking" element={<PizzaBaking />} />
+          <Route path="/breaker" element={<Breaker />} />
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/achievements" element={<Achievements />} />
           <Route path="/solitaire" element={<Solitaire />} />

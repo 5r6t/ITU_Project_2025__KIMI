@@ -88,9 +88,40 @@ def get_state():
 
 @app.route("/inventory")
 def get_inventory_api():
-    """Získá inventář pro výchozího uživatele."""
+    """Získá inventář a pro uložené pizzy doplní informace o toppingu a efektech."""
     inventory_data = get_inventory(ADMIN_ID)
-    return jsonify({"items": inventory_data})
+    
+    enriched_inventory = []
+    
+    for item in inventory_data:
+        item_detail = item.copy()
+        name = item_detail.get("name", "")
+
+        if isinstance(name, str) and ":" in name and "://" not in name:
+            parts = name.split(":")
+            candidate_id = parts[-1]
+            
+            if candidate_id.isdigit():
+                pizza_id = int(candidate_id)
+                saved_pizza = get_saved_pizza(pizza_id) #
+                
+                if saved_pizza:
+                    try:
+                        pizza_json = saved_pizza["pizza_data"]
+                        pizza_obj = json.loads(pizza_json) if isinstance(pizza_json, str) else pizza_json
+                        
+                        item_detail["toppings"] = pizza_obj.get("toppings", [])
+                        item_detail["pizza_color"] = pizza_obj.get("pizza_color")
+                        item_detail["display_name"] = pizza_obj.get("name", name.split(":")[0])
+                        
+                        item_detail["effects"] = pizza_obj.get("effects", {}) 
+
+                    except Exception as e:
+                        print(f"Chyba při parsování pizzy {pizza_id}: {e}")
+
+        enriched_inventory.append(item_detail)
+
+    return jsonify({"items": enriched_inventory})
 
 @app.route("/use_item/<item_name>", methods=["POST"])
 def use_item_api(item_name):
@@ -100,7 +131,6 @@ def use_item_api(item_name):
     if not ingredient_id:
         return jsonify({"message": f"Položka '{item_name}' nebyla nalezena v DB."}), 404
 
-    # Rozpoznání uložených pizz: očekáváme formát "<název_pizzy>:<id>"
     pizza_id = None
     if isinstance(item_name, str) and ":" in item_name and "://" not in item_name:
         candidate = item_name.split(":")[-1]
@@ -116,10 +146,8 @@ def use_item_api(item_name):
         except Exception:
             return jsonify({"message": "Chyba při čtení dat pizzy."}), 500
 
-        # compute effects from stored effects or derive from toppings
         effects = pizza_obj.get("effects") if isinstance(pizza_obj, dict) else None
         if effects is None:
-            # fallback: compute from toppings array (including scale and /5 reduction)
             base_effects = {"hunger": 0, "clean": 0, "energy": 0}
             toppingTypes = set()
             for t in pizza_obj.get("toppings", []) or []:
@@ -130,7 +158,6 @@ def use_item_api(item_name):
                 for k, v in e.items():
                     base_effects[k] = base_effects.get(k, 0) + (v * scale / 5)
 
-            # compute recipe bonuses
             bonus_effects = {"hunger": 0, "clean": 0, "energy": 0}
             special_recipes = [
                 {"required": ["tomato", "cheese"], "bonus": {"hunger": 10, "clean": 5}},
@@ -156,24 +183,20 @@ def use_item_api(item_name):
         if not effect:
             return jsonify({"message": f"Položka '{item_name}' nemá definovaný herní efekt."}), 400
 
-    # 1. KONTROLA: Ověřit, zda je položka v inventáři a má kladné množství
     inventory = get_inventory(ADMIN_ID)
     item_in_inventory = next((item for item in inventory if item['name'] == item_name), None)
 
     if not item_in_inventory or item_in_inventory['quantity'] <= 0:
         return jsonify({"message": f"Položka '{item_name}' není v inventáři, nebo je její množství 0."}), 400
     
-    # 2. Načti aktuální stav Kimiho
     creature = get_creature(creature_id)
     if not creature:
         return jsonify({"error": "Kimi not found"}), 404
         
-    # 3. Aplikuj efekty
     new_clean = creature['clean'] + effect.get('clean', 0)
     new_energy = creature['energy'] + effect.get('energy', 0)
     new_hunger = creature['hunger'] + effect.get('hunger', 0)
 
-    # 4. Aktualizuj stav Kimiho v DB (s clampingem 0-100)
     updated_state = update_creature_state(
         creature_id, 
         clean=new_clean, 
@@ -181,16 +204,12 @@ def use_item_api(item_name):
         hunger=new_hunger
     )
     
-    # 5. KONTROLA: Zda se stav úspěšně zapsal
     if updated_state is None:
-        # TATO zpráva se zobrazí v konzoli serveru, pokud dojde k chybě
         print(f"!!! KRITICKÁ CHYBA: Selhání update_creature_state pro ID: {creature_id}")
         return jsonify({"error": "Chyba DB: Selhání aktualizace stavu Kimiho."}), 500
 
-    # 6. POUZE PO ÚSPĚŠNÉ AKTUALIZACI: Odeber položku z inventáře (potvrzení použití)
     remove_from_inventory(ADMIN_ID, ingredient_id, 1)
     
-    # 7. ÚSPĚCH: Vrátíme nový stav pro aktualizaci UI
     return jsonify(updated_state)
 
 # --- PINBALL API ---
@@ -228,6 +247,17 @@ def ext_catcher_post():
     enabled = bool(data.get("enabled", False))
     return jsonify(set_extension_catcher(ADMIN_ID, enabled))
 
+# --- BRICK BREAKER API ---
+@app.route("/api/breaker/stats", methods=["GET"])
+def breaker_stats():
+    return jsonify(get_breaker_stats(ADMIN_ID))
+
+@app.route("/api/breaker/save", methods=["POST"])
+def breaker_save():
+    data = request.get_json(force=True) or {}
+    score = data.get("score", 0)
+    updated_stats = update_breaker_score(ADMIN_ID, score)
+    return jsonify(updated_stats)
 
 # ==========================================
 # --- WALLBALL API (LEVEL SYSTEM) ---

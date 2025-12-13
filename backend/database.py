@@ -119,6 +119,15 @@ def init_db():
             );
         """)
 
+        # BrickBreaker high scores linked to user
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS BrickBreaker (
+                user_id INTEGER PRIMARY KEY,
+                high_score INTEGER DEFAULT 0,
+                FOREIGN KEY (user_id) REFERENCES User(user_id)
+            );
+        """)
+
     print("Database initialized! ^w^")
 
 #### Delete functions ####
@@ -541,6 +550,31 @@ def get_extension_catcher(user_id: int):
         if not row:
             return {"extension_catcher": False}
         return {"extension_catcher": bool(row[0])}
+
+#### BRICK BREAKER ####
+def ensure_breaker_row(user_id):
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("INSERT OR IGNORE INTO BrickBreaker (user_id) VALUES (?)", (user_id,))
+
+def get_breaker_stats(user_id):
+    ensure_breaker_row(user_id)
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("SELECT high_score FROM BrickBreaker WHERE user_id=?", (user_id,))
+        row = cur.fetchone()
+        return {"highScore": row[0] if row else 0}
+
+def update_breaker_score(user_id, score):
+    ensure_breaker_row(user_id)
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("""
+            UPDATE BrickBreaker 
+            SET high_score = ? 
+            WHERE user_id=? AND ? > high_score
+        """, (score, user_id, score))
+        return get_breaker_stats(user_id)
 
 #### SAVED PIZZAS ####
 def save_pizza(user_id, pizza_name, pizza_json):
