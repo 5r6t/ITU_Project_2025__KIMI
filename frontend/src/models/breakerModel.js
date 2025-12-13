@@ -1,19 +1,24 @@
 import axios from "axios";
 import { LEVELS } from '../breaker_levels';
 
-// --- Nastavení API ---
 const API_URL = "http://127.0.0.1:5000";
 
-// --- Konstanty (Zvětšená verze) ---
 export const GAME_WIDTH = 1200; 
 export const GAME_HEIGHT = 800;
 
-const PADDLE_WIDTH = 180;
 const PADDLE_HEIGHT = 20;
-const PADDLE_SPEED = 9;
 const BALL_RADIUS = 10;
-const BALL_SPEED_BASE = 2.5;
+const POWERUP_SIZE = 30;
+const POWERUP_SPEED = 2;
+const DROP_CHANCE = 0.3; 
 
+export const DIFFICULTIES = {
+    EASY: { label: "Lehká", paddleWidth: 220, ballSpeed: 2.5, lives: 4, color: "#2ecc71", scoreMultiplier: 1 },
+    NORMAL: { label: "Střední", paddleWidth: 180, ballSpeed: 4, lives: 3, color: "#f1c40f", scoreMultiplier: 1.5 },
+    HARD: { label: "Těžká", paddleWidth: 120, ballSpeed: 6, lives: 2, color: "#e74c3c", scoreMultiplier: 2.5 }
+};
+
+const PADDLE_WIDTH_EXPANDED = 300;
 const BRICK_ROWS = 5;
 const BRICK_COLS = 8;
 const BRICK_PADDING = 15;
@@ -22,176 +27,259 @@ const BRICK_OFFSET_LEFT = 50;
 const BRICK_WIDTH = (GAME_WIDTH - (2 * BRICK_OFFSET_LEFT) - ((BRICK_COLS - 1) * BRICK_PADDING)) / BRICK_COLS;
 const BRICK_HEIGHT = 35;
 
-const INITIAL_LIVES = 3;
-
-// --- Pomocné funkce ---
-function initBricks(levelIndex) {
+function initBricks(worldIndex, subLevelIndex) {
     const bricks = [];
-    const levelLayout = LEVELS[levelIndex % LEVELS.length];
+    const world = LEVELS[worldIndex % LEVELS.length];
+    const levelLayout = world[subLevelIndex % world.length];
+
     for (let r = 0; r < BRICK_ROWS; r++) {
         for (let c = 0; c < BRICK_COLS; c++) {
-            if (levelLayout[r] && levelLayout[r][c] === 1) {
+            const type = levelLayout[r] ? levelLayout[r][c] : 0;
+            if (type > 0) {
                 const brickX = c * (BRICK_WIDTH + BRICK_PADDING) + BRICK_OFFSET_LEFT;
                 const brickY = r * (BRICK_HEIGHT + BRICK_PADDING) + BRICK_OFFSET_TOP;
-                bricks.push({ x: brickX, y: brickY, width: BRICK_WIDTH, height: BRICK_HEIGHT, status: 1 });
+                bricks.push({ 
+                    x: brickX, y: brickY, width: BRICK_WIDTH, height: BRICK_HEIGHT, 
+                    status: 1, health: type, maxHealth: type
+                });
             }
         }
     }
     return bricks;
 }
 
+function createBall(x, y, dx, dy, moving = false) {
+    return { x, y, dx, dy, moving };
+}
+
 function resetPositions(state) {
+    const currentPaddleWidth = state.paddleWidthDefault || DIFFICULTIES.NORMAL.paddleWidth;
     return {
         ...state,
-        paddleX: (GAME_WIDTH - PADDLE_WIDTH) / 2,
-        ballX: GAME_WIDTH / 2,
-        ballY: GAME_HEIGHT - PADDLE_HEIGHT - BALL_RADIUS - 5,
-        ballDX: BALL_SPEED_BASE * (Math.random() > 0.5 ? 1 : -1),
-        ballDY: -BALL_SPEED_BASE,
-        ballMoving: false
+        paddleWidth: currentPaddleWidth, 
+        paddleX: (GAME_WIDTH - currentPaddleWidth) / 2,
+        balls: [
+            createBall(
+                GAME_WIDTH / 2, GAME_HEIGHT - PADDLE_HEIGHT - BALL_RADIUS - 5,
+                state.baseSpeed * (Math.random() > 0.5 ? 1 : -1), -state.baseSpeed, false
+            )
+        ],
+        powerUps: [] 
     };
 }
 
 export const BreakerModel = {
-    // --- API KOMUNIKACE ---
-
-    // 1. Načtení statistik ze serveru
     async fetchStats() {
-        try {
-            const res = await axios.get(`${API_URL}/api/breaker/stats`);
-            // Předpokládáme, že server vrací { highScore: 123 }
-            return res.data.highScore || 0;
-        } catch (e) {
-            console.error("Failed to fetch stats from server", e);
-            return 0; // Fallback, pokud server nejede
-        }
+        try { return (await axios.get(`${API_URL}/api/breaker/stats`)).data.highScore || 0; } 
+        catch (e) { return 0; }
     },
 
-    // 2. Uložení skóre na server (Server rozhodne, jestli je to rekord)
     async saveScoreServer(score) {
-        try {
-            // Pošleme aktuální skóre, server si ho porovná s DB
-            const res = await axios.post(`${API_URL}/api/breaker/save`, { score });
-            return res.data.highScore; // Server vrátí aktualizované maximum
-        } catch (e) {
-            console.error("Failed to save score to server", e);
-            return null;
-        }
+        try { return (await axios.post(`${API_URL}/api/breaker/save`, { score })).data.highScore; } 
+        catch (e) { return null; }
     },
 
-    // --- HERNÍ LOGIKA ---
+    async fetchSettings() {
+        try { return (await axios.get(`${API_URL}/api/breaker/powerups`)).data.powerups_enabled; } 
+        catch (e) { return false; }
+    },
 
-    // Inicializace lokálního stavu (High Score se doplní později)
-    initGameLocal() {
+    // NOVÉ: Načtení odemčených světů
+    async fetchProgress() {
+        try { return (await axios.get(`${API_URL}/api/breaker/progress`)).data.maxUnlockedWorld || 0; }
+        catch (e) { return 0; }
+    },
+
+    // NOVÉ: Uložení postupu
+    async saveProgress(worldIndex) {
+        try { 
+            const res = await axios.post(`${API_URL}/api/breaker/progress`, { worldIndex });
+            return res.data.maxUnlockedWorld;
+        } catch (e) { return null; }
+    },
+
+    initGameLocal(difficultyKey = 'NORMAL', worldIndex = 0, unlockedWorldMax = 0) {
+        const settings = DIFFICULTIES[difficultyKey] || DIFFICULTIES.NORMAL;
+        
+        const safeWorldIndex = worldIndex <= unlockedWorldMax ? worldIndex : unlockedWorldMax;
+
         let initialState = {
             score: 0,
-            highScore: 0, // Placeholder, než se načte z API
-            lives: INITIAL_LIVES,
-            level: 1,
+            highScore: 0,
+            lives: settings.lives,
+            
+            worldIndex: safeWorldIndex,
+            subLevelIndex: 0,
+            maxUnlockedWorld: Math.max(unlockedWorldMax, safeWorldIndex),
+
             gameOver: false,
             gameWon: false,
-            paddleWidth: PADDLE_WIDTH,
+            difficulty: difficultyKey,
+            baseSpeed: settings.ballSpeed,
+            paddleWidthDefault: settings.paddleWidth,
+            scoreMultiplier: settings.scoreMultiplier,
+            paddleWidth: settings.paddleWidth,
             paddleHeight: PADDLE_HEIGHT,
             ballRadius: BALL_RADIUS,
-            bricks: initBricks(0)
+            
+            bricks: initBricks(safeWorldIndex, 0),
+            powerUps: [],
+            powerUpsEnabled: false,
+            balls: [],
+            gameStarted: false 
         };
         return resetPositions(initialState);
     },
 
     movePaddle(state, direction) {
-        if (state.gameOver || state.gameWon) return state;
+        if (state.gameOver || state.gameWon || !state.gameStarted) return state;
         let newPaddleX = state.paddleX;
-        if (direction === 'left') newPaddleX -= PADDLE_SPEED;
-        else if (direction === 'right') newPaddleX += PADDLE_SPEED;
+        const paddleSpeed = state.baseSpeed * 2; 
+
+        if (direction === 'left') newPaddleX -= paddleSpeed;
+        else if (direction === 'right') newPaddleX += paddleSpeed;
         
         if (newPaddleX < 0) newPaddleX = 0;
         if (newPaddleX + state.paddleWidth > GAME_WIDTH) newPaddleX = GAME_WIDTH - state.paddleWidth;
         
-        let newBallX = state.ballX;
-        if (!state.ballMoving) newBallX = newPaddleX + state.paddleWidth / 2;
+        const updatedBalls = state.balls.map(ball => {
+            if (!ball.moving) return { ...ball, x: newPaddleX + state.paddleWidth / 2 };
+            return ball;
+        });
         
-        return { ...state, paddleX: newPaddleX, ballX: newBallX };
+        return { ...state, paddleX: newPaddleX, balls: updatedBalls };
     },
 
     launchBall(state) {
-        if (!state.ballMoving && !state.gameOver && !state.gameWon) {
-            return { ...state, ballMoving: true };
-        }
+        if (state.gameOver || state.gameWon || !state.gameStarted) return state;
+        const launchedBalls = state.balls.map(ball => ({ ...ball, moving: true }));
+        if (state.balls.some(b => !b.moving)) return { ...state, balls: launchedBalls };
         return state;
     },
 
     updatePhysics(state) {
-        if (state.gameOver || state.gameWon || !state.ballMoving) return state;
+        if (state.gameOver || state.gameWon || !state.gameStarted) return state;
 
-        let { ballX, ballY, ballDX, ballDY, paddleX, paddleWidth, bricks, score, lives, level, highScore } = state;
+        let { 
+            balls, paddleX, paddleWidth, bricks, score, lives, highScore,
+            powerUps, powerUpsEnabled, baseSpeed, scoreMultiplier,
+            worldIndex, subLevelIndex, maxUnlockedWorld
+        } = state;
+
         let newGameOver = false;
         let newGameWon = false;
         let nextInitialState = null;
-
-        // Pohyb míčku
-        ballX += ballDX;
-        ballY += ballDY;
-
-        // Kolize se stěnami
-        if (ballX + ballDX > GAME_WIDTH - BALL_RADIUS || ballX + ballDX < BALL_RADIUS) ballDX = -ballDX;
-        if (ballY + ballDY < BALL_RADIUS) ballDY = -ballDY;
-        
-        // Spodní hrana (smrt)
-        if (ballY + ballDY > GAME_HEIGHT - BALL_RADIUS) {
-            lives--;
-            if (lives <= 0) newGameOver = true;
-            else {
-                const resetState = resetPositions(state);
-                return { ...resetState, score, lives, level, highScore, bricks };
-            }
-        }
-
-        // Pálka
-        if (ballY > GAME_HEIGHT - PADDLE_HEIGHT - BALL_RADIUS && ballX > paddleX && ballX < paddleX + paddleWidth) {
-            ballDY = -Math.abs(ballDY);
-            let hitPoint = ballX - (paddleX + paddleWidth / 2);
-            hitPoint = hitPoint / (paddleWidth / 2);
-            ballDX = hitPoint * BALL_SPEED_BASE * 1.5;
-            if (Math.abs(ballDX) < 1) ballDX = ballDX > 0 ? 1.5 : -1.5;
-        }
-
-        // Cihly
         let bricksChanged = false;
-        let activeBricksCount = 0;
-        bricks = bricks.map(brick => {
-            if (brick.status === 1) {
-                activeBricksCount++;
-                if (ballX + BALL_RADIUS > brick.x && ballX - BALL_RADIUS < brick.x + brick.width && ballY + BALL_RADIUS > brick.y && ballY - BALL_RADIUS < brick.y + brick.height) {
-                    ballDY = -ballDY;
-                    score += 10;
-                    bricksChanged = true;
-                    activeBricksCount--;
-                    return { ...brick, status: 0 };
-                }
+
+        let survivingBalls = [];
+
+        balls.forEach(ball => {
+            if (!ball.moving) { survivingBalls.push(ball); return; }
+
+            let { x, y, dx, dy } = ball;
+            x += dx; y += dy;
+
+            if (x + dx > GAME_WIDTH - BALL_RADIUS || x + dx < BALL_RADIUS) dx = -dx;
+            if (y + dy < BALL_RADIUS) dy = -dy;
+
+            if (y > GAME_HEIGHT - PADDLE_HEIGHT - BALL_RADIUS && x > paddleX && x < paddleX + paddleWidth) {
+                dy = -Math.abs(dy);
+                let hitPoint = x - (paddleX + paddleWidth / 2);
+                hitPoint = hitPoint / (paddleWidth / 2); 
+                dx = hitPoint * baseSpeed * 1.5;
+                if (Math.abs(dx) < 1) dx = dx > 0 ? 1.5 : -1.5;
             }
-            return brick;
+
+            let hitBrick = false;
+            bricks = bricks.map(brick => {
+                if (brick.status === 1 && !hitBrick) {
+                    if (x + BALL_RADIUS > brick.x && x - BALL_RADIUS < brick.x + brick.width && 
+                        y + BALL_RADIUS > brick.y && y - BALL_RADIUS < brick.y + brick.height) {
+                        
+                        dy = -dy;
+                        hitBrick = true;
+                        bricksChanged = true;
+                        
+                        const newHealth = brick.health - 1;
+                        if (newHealth <= 0) {
+                            score += Math.ceil(10 * scoreMultiplier * brick.maxHealth);
+                            if (powerUpsEnabled && Math.random() < DROP_CHANCE) {
+                                const rand = Math.random();
+                                let type = rand > 0.8 ? 'MULTIBALL' : (rand > 0.5 ? 'LIFE' : 'WIDE');
+                                powerUps.push({ x: brick.x + brick.width/2 - POWERUP_SIZE/2, y: brick.y, type });
+                            }
+                            return { ...brick, health: 0, status: 0 };
+                        } else {
+                            score += Math.ceil(2 * scoreMultiplier);
+                            return { ...brick, health: newHealth };
+                        }
+                    }
+                }
+                return brick;
+            });
+
+            if (y + dy <= GAME_HEIGHT - BALL_RADIUS) survivingBalls.push({ ...ball, x, y, dx, dy });
         });
 
-        // Update lokálního High Score (vizuální efekt)
-        if (score > highScore) {
-            highScore = score;
+        if (survivingBalls.length === 0) {
+            lives--;
+            paddleWidth = state.paddleWidthDefault; 
+            if (lives <= 0) newGameOver = true;
+            else {
+                const resetState = resetPositions({ ...state, paddleWidth });
+                return { ...resetState, score, lives, bricks, powerUps: [] };
+            }
         }
 
-        // Level logika
+        let activePowerUps = [];
+        if (powerUps) {
+            powerUps.forEach(p => {
+                p.y += POWERUP_SPEED;
+                let consumed = false;
+                if (p.y + POWERUP_SIZE >= GAME_HEIGHT - PADDLE_HEIGHT && p.y <= GAME_HEIGHT &&
+                    p.x + POWERUP_SIZE >= paddleX && p.x <= paddleX + paddleWidth) {
+                    consumed = true;
+                    if (p.type === 'LIFE') lives++;
+                    else if (p.type === 'WIDE') {
+                        paddleWidth = PADDLE_WIDTH_EXPANDED;
+                        if (paddleX + paddleWidth > GAME_WIDTH) paddleX = GAME_WIDTH - paddleWidth;
+                    } else if (p.type === 'MULTIBALL') {
+                        survivingBalls.push(createBall(paddleX + paddleWidth/2, GAME_HEIGHT - PADDLE_HEIGHT - 30, baseSpeed * (Math.random()>0.5?1.5:-1.5), -baseSpeed, true));
+                    }
+                }
+                if (!consumed && p.y < GAME_HEIGHT) activePowerUps.push(p);
+            });
+        }
+
+        if (score > highScore) highScore = score;
+
+        const activeBricksCount = bricks.filter(b => b.status === 1).length;
+        
         if (activeBricksCount === 0 && !newGameOver) {
-            level++;
-            if (level > LEVELS.length) {
+            subLevelIndex++; 
+            
+            if (subLevelIndex >= LEVELS[worldIndex].length) {
+                worldIndex++; 
+                subLevelIndex = 0; 
+                
+                if (worldIndex > maxUnlockedWorld) {
+                    maxUnlockedWorld = worldIndex;
+                }
+            }
+
+            if (worldIndex >= LEVELS.length) {
                 newGameWon = true;
-                level--;
+                worldIndex = LEVELS.length - 1; 
+                subLevelIndex = LEVELS[worldIndex].length - 1; 
             } else {
                 nextInitialState = resetPositions({
                     ...state,
-                    level: level,
-                    score: score,
-                    highScore: highScore,
-                    lives: lives,
-                    bricks: initBricks(level - 1),
-                    ballMoving: false
+                    score, highScore, lives,
+                    worldIndex, subLevelIndex, maxUnlockedWorld,
+                    paddleWidth, 
+                    bricks: initBricks(worldIndex, subLevelIndex),
+                    balls: [],
+                    powerUps: []
                 });
             }
         }
@@ -200,11 +288,9 @@ export const BreakerModel = {
 
         return {
             ...state,
-            ballX, ballY, ballDX, ballDY,
-            bricks: bricksChanged ? bricks : state.bricks,
-            score, lives, level, highScore,
-            gameOver: newGameOver,
-            gameWon: newGameWon
+            balls: survivingBalls, paddleX, paddleWidth, bricks: bricksChanged ? bricks : state.bricks,
+            powerUps: activePowerUps, score, lives, highScore, gameOver: newGameOver, gameWon: newGameWon, powerUpsEnabled,
+            worldIndex, subLevelIndex, maxUnlockedWorld
         };
     },
 };

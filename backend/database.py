@@ -2,23 +2,15 @@ import sqlite3
 
 CONST_DB_FILE = "database.db"
 
-# guess we will use just one default user, maybe admin on init -> create_default_user function
-# Create tables
-import sqlite3
-
-CONST_DB_FILE = "database.db"
-
 def connect():
     con = sqlite3.connect(CONST_DB_FILE)
     con.execute("PRAGMA foreign_keys = ON;")
     return con
 
-#### Initialize Databaze ####
 def init_db():
     with connect() as con:
         cur = con.cursor()
 
-        # User table
         cur.execute("""
             CREATE TABLE IF NOT EXISTS User (
                 user_id   INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,7 +18,6 @@ def init_db():
             );
         """)
 
-        # Achievements linked to user
         cur.execute("""
             CREATE TABLE IF NOT EXISTS Achievement (
                 achvmnt_id       INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -40,7 +31,6 @@ def init_db():
             );
         """)
 
-        # Creature linked to owner
         cur.execute("""
             CREATE TABLE IF NOT EXISTS Creature (
                 creature_id     INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -52,7 +42,6 @@ def init_db():
             );
         """)
 
-        # Recipes and Ingredients
         cur.execute("""
             CREATE TABLE IF NOT EXISTS Recipe (
                 recipe_id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -63,7 +52,6 @@ def init_db():
             );
         """)
 
-        # Ingredient
         cur.execute("""
             CREATE TABLE IF NOT EXISTS Ingredient (
                 ingredient_id   INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -71,7 +59,6 @@ def init_db():
             );
         """)
 
-        # Recipe <-> Ingredient relation (many-to-many)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS RecipeIngredient (
                 recipe_id     INTEGER,
@@ -83,7 +70,6 @@ def init_db():
             );
         """)
 
-        # Inventory — what the user currently owns only ingredients for now
         cur.execute("""
             CREATE TABLE IF NOT EXISTS Inventory (
                 inventory_id  INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -96,7 +82,6 @@ def init_db():
             );
         """)
 
-        # Pinball scores linked to user
         cur.execute("""
             CREATE TABLE IF NOT EXISTS Pinball (
                 user_id INTEGER PRIMARY KEY,
@@ -107,7 +92,6 @@ def init_db():
             );
         """)
 
-        # Saved pizzas as JSON blobs
         cur.execute("""
             CREATE TABLE IF NOT EXISTS SavedPizza (
                 pizza_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -119,20 +103,19 @@ def init_db():
             );
         """)
 
-        # BrickBreaker high scores linked to user
         cur.execute("""
             CREATE TABLE IF NOT EXISTS BrickBreaker (
                 user_id INTEGER PRIMARY KEY,
                 high_score INTEGER DEFAULT 0,
+                powerups_enabled BOOLEAN DEFAULT 0,
+                breaker_max_level INTEGER DEFAULT 0,
                 FOREIGN KEY (user_id) REFERENCES User(user_id)
             );
         """)
 
     print("Database initialized! ^w^")
 
-#### Delete functions ####
 def destroy():
-    """Drops all project tables explicitly, ignoring foreign keys."""
     con = sqlite3.connect(CONST_DB_FILE)
     con.execute("PRAGMA foreign_keys = OFF;")
     cur = con.cursor()
@@ -146,6 +129,8 @@ def destroy():
         "Ingredient",
         "Pinball",
         "User",
+        "BrickBreaker",
+        "SavedPizza"
     ]
 
     for table in tables:
@@ -158,8 +143,6 @@ def destroy():
     con.commit()
     con.close()
     print("Database wiped and ready for re-init.")
-
-
 
 def remove_all_achievements():
     with connect() as con:
@@ -185,7 +168,6 @@ def remove_all_pinball_data():
     with connect() as con:
         con.execute("DELETE FROM Pinball;")
 
-#### CREATURE ####
 def create_creature(owner_id, clean=50, energy=50, hunger=50):
     with connect() as con:
         cur = con.cursor()
@@ -193,7 +175,7 @@ def create_creature(owner_id, clean=50, energy=50, hunger=50):
             INSERT INTO Creature (owner_id, clean_state, energy_state, hunger_state)
             VALUES (?, ?, ?, ?)
         """, (owner_id, clean, energy, hunger))
-        return cur.lastrowid # return creature id
+        return cur.lastrowid
 
 def get_creature(creature_id):
     with connect() as con:
@@ -211,9 +193,7 @@ def get_creature(creature_id):
             "hunger": row[2],
         }
 
-# handles states so that they don't overflow, returns states
 def update_creature_state(creature_id, clean=None, energy=None, hunger=None):
-    """Update creature states; automatically clamps values between 0–100."""
     with connect() as con:
         cur = con.cursor()
 
@@ -226,7 +206,6 @@ def update_creature_state(creature_id, clean=None, energy=None, hunger=None):
         if hunger is not None:
             hunger = max(0, min(100, hunger))
             cur.execute("UPDATE Creature SET hunger_state=? WHERE creature_id=?", (hunger, creature_id))
-        # fetch updated values before returning
         cur.execute("""
             SELECT clean_state, energy_state, hunger_state
             FROM Creature WHERE creature_id=?;
@@ -241,7 +220,7 @@ def update_creature_state(creature_id, clean=None, energy=None, hunger=None):
             "energy": row[1],
             "hunger": row[2]
         }
-## DEFAULT ######################################## >>w<<
+
 DEFAULT_ID = 1
 
 def create_default_creature():
@@ -261,7 +240,6 @@ def create_default_user():
             (DEFAULT_ID, "Admin")
         )
 
-#### ACHIEVEMENTS ####
 def create_default_achievements(user_id):
     defaults = [
         ("First Win", 1),
@@ -303,11 +281,9 @@ def update_achievement_progress(achvmnt_id, new_progress):
     with connect() as con:
         cur = con.cursor()
 
-        # read BEFORE update
         cur.execute("SELECT completed FROM Achievement WHERE achvmnt_id=?", (achvmnt_id,))
         old_completed = bool(cur.fetchone()[0])
 
-        # perform update
         cur.execute("""
             UPDATE Achievement
             SET achvmnt_progress=?,
@@ -315,7 +291,6 @@ def update_achievement_progress(achvmnt_id, new_progress):
             WHERE achvmnt_id=?;
         """, (new_progress, new_progress, achvmnt_id))
 
-        # read AFTER update
         cur.execute("""
             SELECT achvmnt_id, achvmnt_name, achvmnt_progress, achvmnt_target, completed
             FROM Achievement
@@ -334,30 +309,22 @@ def update_achievement_progress(achvmnt_id, new_progress):
             "newly_completed": (not old_completed and new_completed)
         }
 
-
-
-#### INVENTORY ####
 def clean_inventory(user_id):
-    """Odstraní všechny položky z inventáře daného uživatele, jejichž množství je <= 0."""
     with connect() as con:
         cur = con.cursor()
-        # Smaže všechny záznamy z Inventory, kde je quantity 0 nebo méně pro daného uživatele
         con.execute("""
             DELETE FROM Inventory
             WHERE user_id = ?;
         """, (user_id,))
-        # Vrátí počet smazaných řádků
         return cur.rowcount
 
 def list_ingredients():
-    """List all available ingredient types."""
     with connect() as con:
         cur = con.cursor()
         cur.execute("SELECT ingredient_id, ingredient_name FROM Ingredient;")
         return cur.fetchall()
     
 def add_ingredient(name):
-    """Add a new ingredient type or return existing ID."""
     with connect() as con:
         cur = con.cursor()
         cur.execute("INSERT OR IGNORE INTO Ingredient (ingredient_name) VALUES (?)", (name,))
@@ -366,7 +333,6 @@ def add_ingredient(name):
         return row[0] if row else None 
 
 def get_ingredient_by_name(name):
-    """Retrieve ingredient_id by name."""
     with connect() as con:
         cur = con.cursor()
         cur.execute("SELECT ingredient_id FROM Ingredient WHERE ingredient_name=?", (name,))
@@ -374,7 +340,6 @@ def get_ingredient_by_name(name):
         return row[0] if row else None
 
 def add_to_inventory(user_id, ingredient_id, amount):
-    """Increase quantity of ingredient in user's inventory."""
     with connect() as con:
         cur = con.cursor()
         cur.execute("""
@@ -384,38 +349,31 @@ def add_to_inventory(user_id, ingredient_id, amount):
         """, (user_id, ingredient_id, amount))
 
 def remove_from_inventory(user_id, ingredient_id, amount):
-    """
-    Sníží množství předmětu a SMAŽE řádek, pokud množství klesne na 0 nebo méně.
-    """
     with connect() as con:
-        # Krok 1: Snížení množství, ne pod 0
         con.execute("""
             UPDATE Inventory
             SET quantity = MAX(quantity - ?, 0)
             WHERE user_id=? AND ingredient_id=?;
         """, (amount, user_id, ingredient_id))
         
-        # Krok 2: Odstranění řádku, pokud je množství <= 0
         con.execute("""
             DELETE FROM Inventory
             WHERE user_id=? AND ingredient_id=? AND quantity <= 0;
         """, (user_id, ingredient_id))
 
-        # Krok 3: Vrátí aktuální množství (0, pokud bylo odstraněno)
         cur = con.cursor()
         cur.execute("SELECT quantity FROM Inventory WHERE user_id=? AND ingredient_id=?", (user_id, ingredient_id))
         row = cur.fetchone()
         return row[0] if row else 0
 
 def get_inventory(user_id):
-    """Get all items and quantities in user's inventory (quantity > 0) as a list of dicts."""
     with connect() as con:
         cur = con.cursor()
         cur.execute("""
             SELECT 
-                Ingredient.ingredient_id,  -- Index 0
-                Ingredient.ingredient_name,  -- Index 1
-                Inventory.quantity  -- Index 2
+                Ingredient.ingredient_id,
+                Ingredient.ingredient_name,
+                Inventory.quantity
             FROM Inventory
             JOIN Ingredient ON Inventory.ingredient_id = Ingredient.ingredient_id
             WHERE Inventory.user_id=? AND Inventory.quantity > 0;
@@ -428,13 +386,11 @@ def get_inventory(user_id):
             inventory_list.append({
                 "id": row[0],
                 "name": row[1],
-                "quantity": row[2]  # Zde MUSÍ být množství
+                "quantity": row[2]
             })
         return inventory_list
     
-#### RECIPES ####
 def add_recipe(user_id, name, cook_time=0):
-    """Add a recipe."""
     with connect() as con:
         cur = con.cursor()
         cur.execute("""
@@ -444,7 +400,6 @@ def add_recipe(user_id, name, cook_time=0):
         return cur.lastrowid
 
 def add_ingredient_to_recipe(recipe_id, ingredient_id, quantity=1):
-    """Link an ingredient to a recipe (many-to-many)."""
     with connect() as con:
         cur = con.cursor()
         cur.execute("""
@@ -453,7 +408,6 @@ def add_ingredient_to_recipe(recipe_id, ingredient_id, quantity=1):
         """, (recipe_id, ingredient_id, quantity))
 
 def list_recipes(user_id):
-    """List all recipes for a user."""
     with connect() as con:
         cur = con.cursor()
         cur.execute("""
@@ -464,7 +418,6 @@ def list_recipes(user_id):
         return cur.fetchall()
 
 def get_recipe_details(recipe_id):
-    """Return recipe info and its ingredients."""
     with connect() as con:
         cur = con.cursor()
         cur.execute("""
@@ -487,7 +440,6 @@ def get_recipe_details(recipe_id):
             "ingredients": ingredients
         }
 
-#### PINBALL ####
 def ensure_pinball_row(user_id):
     with connect() as con:
         cur = con.cursor()
@@ -542,8 +494,6 @@ def set_extension_catcher(user_id: int, enabled: bool):
 
 def get_extension_catcher(user_id: int):
     with connect() as con:
-
-        # placeholder - real implementation exists earlier in file; keeping function placeholder consistent
         cur = con.cursor()
         cur.execute("SELECT extension_catcher FROM Pinball WHERE user_id=?", (user_id,))
         row = cur.fetchone()
@@ -551,7 +501,6 @@ def get_extension_catcher(user_id: int):
             return {"extension_catcher": False}
         return {"extension_catcher": bool(row[0])}
 
-#### BRICK BREAKER ####
 def ensure_breaker_row(user_id):
     with connect() as con:
         cur = con.cursor()
@@ -576,9 +525,47 @@ def update_breaker_score(user_id, score):
         """, (score, user_id, score))
         return get_breaker_stats(user_id)
 
-#### SAVED PIZZAS ####
+def set_breaker_powerups(user_id: int, enabled: bool):
+    ensure_breaker_row(user_id)
+    with connect() as con:
+        cur = con.cursor()
+        val = 1 if enabled else 0
+        cur.execute("UPDATE BrickBreaker SET powerups_enabled=? WHERE user_id=?", (val, user_id))
+        return {"powerups_enabled": bool(enabled)}
+
+def get_breaker_powerups(user_id: int):
+    ensure_breaker_row(user_id)
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("SELECT powerups_enabled FROM BrickBreaker WHERE user_id=?", (user_id,))
+        row = cur.fetchone()
+        val = row[0] if row else 0
+        return {"powerups_enabled": bool(val)}
+
+def get_breaker_progress(user_id: int):
+    ensure_breaker_row(user_id)
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("SELECT breaker_max_level FROM BrickBreaker WHERE user_id=?", (user_id,))
+        row = cur.fetchone()
+        val = row[0] if row else 0
+        return {"maxUnlockedWorld": val}
+
+def update_breaker_progress(user_id: int, new_level: int):
+    ensure_breaker_row(user_id)
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("""
+            UPDATE BrickBreaker 
+            SET breaker_max_level = ? 
+            WHERE user_id=? AND ? > breaker_max_level
+        """, (new_level, user_id, new_level))
+        
+    # FIX: We return the progress OUTSIDE the 'with' block.
+    # This ensures the transaction above is committed before we read from the DB.
+    return get_breaker_progress(user_id)
+
 def save_pizza(user_id, pizza_name, pizza_json):
-    """Save JSON blob of pizza and return pizza_id."""
     with connect() as con:
         cur = con.cursor()
         cur.execute(
@@ -602,10 +589,3 @@ def get_saved_pizza(pizza_id):
         if not r:
             return None
         return {"pizza_id": r[0], "pizza_name": r[1], "pizza_data": r[2], "user_id": r[3], "created_at": r[4]}
-        cur = con.cursor()
-        cur.execute(
-            "SELECT extension_catcher FROM Pinball WHERE user_id=?",
-            (user_id,),
-        )
-        row = cur.fetchone()
-        return {"extension_catcher": bool(row[0])} if row else {"extension_catcher": False}

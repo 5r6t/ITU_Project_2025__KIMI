@@ -7,10 +7,8 @@ ITEM_EFFECTS = {
     "Cheese": {"hunger": 20, "clean": -5},
     "Soap": {"clean": 30},
     "Energy Drink": {"energy": 40, "clean": -5},
-    # Přidejte další ingredience, které chcete mít v inventáři
 }
 
-# Effects for pizza toppings (used when saving a pizza)
 TOPPING_EFFECTS = {
     "tomato": {"hunger": 8, "clean": 2},
     "cheese": {"hunger": 18},
@@ -20,14 +18,14 @@ TOPPING_EFFECTS = {
 }
 
 app = Flask(__name__)
-CORS(app)  # povolí Reactu volať API
+CORS(app)
 
 ADMIN_ID = 1 
 
 destroy()
-init_db() # INITIALIZE DB (NOTHING HAPPENS IF INITIALIZED)
-create_default_user() # admin, `id`` is 1
-creature_id = create_default_creature() # ``id`` is 1
+init_db()
+create_default_user()
+creature_id = create_default_creature()
 
 clean_inventory(ADMIN_ID)
 
@@ -39,10 +37,7 @@ add_to_inventory(ADMIN_ID, cheese_id, 10)
 add_to_inventory(ADMIN_ID, soap_id, 5)
 add_to_inventory(ADMIN_ID, energy_drink_id, 3)
 
-ensure_pinball_row(ADMIN_ID)   # ensure pinball row for admin user
-
-# see get_achievements api
-#remove_all_achievements()
+ensure_pinball_row(ADMIN_ID)
 create_default_achievements(ADMIN_ID)
 data = list_achievements(ADMIN_ID)
 
@@ -88,9 +83,7 @@ def get_state():
 
 @app.route("/inventory")
 def get_inventory_api():
-    """Získá inventář a pro uložené pizzy doplní informace o toppingu a efektech."""
     inventory_data = get_inventory(ADMIN_ID)
-    
     enriched_inventory = []
     
     for item in inventory_data:
@@ -100,33 +93,25 @@ def get_inventory_api():
         if isinstance(name, str) and ":" in name and "://" not in name:
             parts = name.split(":")
             candidate_id = parts[-1]
-            
             if candidate_id.isdigit():
                 pizza_id = int(candidate_id)
-                saved_pizza = get_saved_pizza(pizza_id) #
-                
+                saved_pizza = get_saved_pizza(pizza_id)
                 if saved_pizza:
                     try:
                         pizza_json = saved_pizza["pizza_data"]
                         pizza_obj = json.loads(pizza_json) if isinstance(pizza_json, str) else pizza_json
-                        
                         item_detail["toppings"] = pizza_obj.get("toppings", [])
                         item_detail["pizza_color"] = pizza_obj.get("pizza_color")
                         item_detail["display_name"] = pizza_obj.get("name", name.split(":")[0])
-                        
                         item_detail["effects"] = pizza_obj.get("effects", {}) 
-
                     except Exception as e:
                         print(f"Chyba při parsování pizzy {pizza_id}: {e}")
-
         enriched_inventory.append(item_detail)
 
     return jsonify({"items": enriched_inventory})
 
 @app.route("/use_item/<item_name>", methods=["POST"])
 def use_item_api(item_name):
-    """Použije položku z inventáře a aplikuje její efekt na Kimiho."""
-
     ingredient_id = get_ingredient_by_name(item_name)
     if not ingredient_id:
         return jsonify({"message": f"Položka '{item_name}' nebyla nalezena v DB."}), 404
@@ -176,7 +161,6 @@ def use_item_api(item_name):
                 "clean": int(base_effects["clean"] + bonus_effects["clean"]),
                 "energy": int(base_effects["energy"] + bonus_effects["energy"]),
             }
-
         effect = effects
     else:
         effect = ITEM_EFFECTS.get(item_name)
@@ -205,14 +189,11 @@ def use_item_api(item_name):
     )
     
     if updated_state is None:
-        print(f"!!! KRITICKÁ CHYBA: Selhání update_creature_state pro ID: {creature_id}")
         return jsonify({"error": "Chyba DB: Selhání aktualizace stavu Kimiho."}), 500
 
     remove_from_inventory(ADMIN_ID, ingredient_id, 1)
-    
     return jsonify(updated_state)
 
-# --- PINBALL API ---
 @app.route("/api/v1/pinball/state", methods=["GET"])
 def pinball_state():
     ensure_pinball_row(ADMIN_ID)
@@ -247,7 +228,6 @@ def ext_catcher_post():
     enabled = bool(data.get("enabled", False))
     return jsonify(set_extension_catcher(ADMIN_ID, enabled))
 
-# --- BRICK BREAKER API ---
 @app.route("/api/breaker/stats", methods=["GET"])
 def breaker_stats():
     return jsonify(get_breaker_stats(ADMIN_ID))
@@ -259,29 +239,39 @@ def breaker_save():
     updated_stats = update_breaker_score(ADMIN_ID, score)
     return jsonify(updated_stats)
 
-# ==========================================
-# --- WALLBALL API (LEVEL SYSTEM) ---
-# ==========================================
+@app.route("/api/breaker/powerups", methods=["GET"])
+def breaker_powerups_get():
+    return jsonify(get_breaker_powerups(ADMIN_ID))
 
-# Dočasná paměť pro postup (po restartu serveru se vrátí na 1)
-# Pokud to chceš ukládat trvale, musel bys tady volat svou databázi.
+@app.route("/api/breaker/powerups", methods=["POST"])
+def breaker_powerups_post():
+    data = request.get_json(force=True) or {}
+    enabled = bool(data.get("enabled", False))
+    return jsonify(set_breaker_powerups(ADMIN_ID, enabled))
+
+# --- ZMĚNA ZDE: NOVÉ ENDPOINTY PRO PROGRESS ---
+@app.route("/api/breaker/progress", methods=["GET"])
+def breaker_progress_get():
+    """Vrátí aktuálně odemčený svět."""
+    return jsonify(get_breaker_progress(ADMIN_ID))
+
+@app.route("/api/breaker/progress", methods=["POST"])
+def breaker_progress_post():
+    """Uloží postup (odemkne nový svět), pokud je vyšší než současný."""
+    data = request.get_json(force=True) or {}
+    world_index = int(data.get("worldIndex", 0))
+    return jsonify(update_breaker_progress(ADMIN_ID, world_index))
+
 wallball_state = {
     "max_unlocked_level": 1
 }
 
 @app.route('/api/v1/wallball/progress', methods=['GET'])
 def get_wallball_progress():
-    """
-    Vrátí aktuální postup hráče (odemčené levely).
-    """
-    # Zde bys v budoucnu četl z DB: SELECT max_level FROM wallball_progress WHERE user_id = ...
     return jsonify(wallball_state)
 
 @app.route('/api/v1/wallball/complete_level', methods=['POST'])
 def complete_wallball_level():
-    """
-    Zaznamená dokončení levelu a odemkne další.
-    """
     data = request.json
     completed_level_id = data.get('level_id')
     
@@ -291,40 +281,30 @@ def complete_wallball_level():
     current_max = wallball_state["max_unlocked_level"]
     next_level_unlocked = False
 
-    # Pokud hráč dokončil svůj aktuální maximální level, odemkneme level + 1
     if completed_level_id == current_max:
         wallball_state["max_unlocked_level"] = current_max + 1
         next_level_unlocked = True
         print(f"Wallball: Hráč dokončil level {completed_level_id}, odemykám {current_max + 1}")
     
-    # Zde bys v budoucnu ukládal do DB: UPDATE wallball_progress SET ...
-
     return jsonify({
         "success": True, 
         "next_level_unlocked": next_level_unlocked,
         "max_unlocked_level": wallball_state["max_unlocked_level"]
     })
 
-
-# --- PIZZA SAVE API ---
 @app.route("/pizza/save", methods=["POST"])
 def pizza_save():
-    """Uloží JSON reprezentaci pizzy do DB a přidá ji jako položku do inventáře (jako "Custom Pizza <id>")."""
     data = request.get_json(force=True) or {}
     toppings = data.get("toppings")
     name = data.get("name") or "Custom Pizza"
 
-    # basic validation
     if toppings is None:
         return jsonify({"error": "missing toppings"}), 400
 
-    # save pizza blob
-    # accept optional bake metadata (from minigame)
     bake_result = data.get('bake_result')
     score = data.get('score')
 
     try:
-        # compute aggregated effects from toppings (including scale and /5 reduction)
         base_effects = {"hunger": 0, "clean": 0, "energy": 0}
         for t in toppings:
             ttype = t.get('type') if isinstance(t, dict) else t
@@ -333,10 +313,8 @@ def pizza_save():
             for k, v in e.items():
                 base_effects[k] = base_effects.get(k, 0) + (v * scale / 5)
 
-        # compute recipe bonuses
         toppingTypes = set(t.get('type') if isinstance(t, dict) else t for t in toppings)
         bonus_effects = {"hunger": 0, "clean": 0, "energy": 0}
-        # Check all special recipes (hardcoded for now, or can fetch from SPECIAL_RECIPES if defined on backend)
         special_recipes = [
             {"required": ["tomato", "cheese"], "bonus": {"hunger": 10, "clean": 5}},
             {"required": ["tomato", "mushroom", "pepper"], "bonus": {"hunger": 8, "clean": 8, "energy": 3}},
@@ -349,14 +327,12 @@ def pizza_save():
                 for k, v in recipe["bonus"].items():
                     bonus_effects[k] = bonus_effects.get(k, 0) + v
 
-        # combine base + bonus and floor to int
         total_effects = {
             "hunger": int(base_effects["hunger"] + bonus_effects["hunger"]),
             "clean": int(base_effects["clean"] + bonus_effects["clean"]),
             "energy": int(base_effects["energy"] + bonus_effects["energy"]),
         }
 
-        # if bake_result is provided, apply multiplier based on classification
         if bake_result and isinstance(bake_result, dict):
             classification = bake_result.get("classification", "ok")
             multiplier = 1.0
@@ -366,12 +342,10 @@ def pizza_save():
                 multiplier = 1.1
             elif classification in ["undercooked", "burnt"]:
                 multiplier = 0.7
-            # apply multiplier to all effects
             for key in total_effects:
                 total_effects[key] = int(total_effects[key] * multiplier)
 
         pizza_obj = {"name": name, "toppings": toppings, "effects": total_effects}
-        # if client supplied bake metadata, include it in the saved blob
         if bake_result is not None:
             pizza_obj["bake_result"] = bake_result
         if score is not None:
@@ -388,14 +362,11 @@ def pizza_save():
         print("Failed to save pizza:", e)
         return jsonify({"error": "failed to save pizza"}), 500
 
-    # create an ingredient representing this saved pizza so it can appear in inventory
-    # use the pizza name as ingredient name, with pizza_id as identifier
     pizza_ingredient_name = f"{name}:{pizza_id}"
     ingredient_id = add_ingredient(pizza_ingredient_name)
     add_to_inventory(ADMIN_ID, ingredient_id, 1)
 
     return jsonify({"pizza_id": pizza_id, "ingredient_name": pizza_ingredient_name})
-
 
 @app.route("/pizza/saved")
 def pizza_saved_list():
@@ -404,7 +375,6 @@ def pizza_saved_list():
 
 @app.route("/pizza/preview", methods=["POST"])
 def pizza_preview():
-    """Vypočítá efekty a vrátí preview pizzy bez uložení."""
     data = request.get_json(force=True) or {}
     toppings = data.get("toppings", [])
     
@@ -412,7 +382,6 @@ def pizza_preview():
         return jsonify({"error": "missing toppings"}), 400
     
     try:
-        # compute aggregated effects from toppings (including scale and /5 reduction)
         base_effects = {"hunger": 0, "clean": 0, "energy": 0}
         for t in toppings:
             ttype = t.get('type') if isinstance(t, dict) else t
@@ -421,7 +390,6 @@ def pizza_preview():
             for k, v in e.items():
                 base_effects[k] = base_effects.get(k, 0) + (v * scale / 5)
 
-        # compute recipe bonuses
         toppingTypes = set(t.get('type') if isinstance(t, dict) else t for t in toppings)
         bonus_effects = {"hunger": 0, "clean": 0, "energy": 0}
         special_recipes = [
@@ -436,7 +404,6 @@ def pizza_preview():
                 for k, v in recipe["bonus"].items():
                     bonus_effects[k] = bonus_effects.get(k, 0) + v
 
-        # combine base + bonus and floor to int
         total_effects = {
             "hunger": int(base_effects["hunger"] + bonus_effects["hunger"]),
             "clean": int(base_effects["clean"] + bonus_effects["clean"]),
@@ -448,7 +415,6 @@ def pizza_preview():
         print("Failed to preview pizza:", e)
         return jsonify({"error": "failed to preview pizza"}), 500
 
-# --- Achievements ----
 @app.route("/get_achievements")
 def get_achievements():
     data = list_achievements(ADMIN_ID)
@@ -462,7 +428,6 @@ def get_achievements():
             locked.append(name)
 
     return jsonify({"unlocked": unlocked, "locked": locked})
-
 
 @app.route("/update_achievement/<int:achvmnt_id>/<int:new_progress>", methods=["POST"])
 def update_achievement(achvmnt_id, new_progress):

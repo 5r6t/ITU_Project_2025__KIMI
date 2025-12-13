@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom"; 
 import { useNavigate } from "react-router-dom";
+import axios from "axios"; // Důležité: Import axiosu pro komunikaci s API
 
 import Header from "./meta_components/Header";
 import StatusBar from "./meta_components/StatusBar";
-import Inventory from "./Inventory"; // Importujeme Inventory
+import Inventory from "./Inventory"; 
 import { Scene } from "./meta_components/Scene";
 
 import { createKimiController } from "./controllers/kimiController";
@@ -19,23 +20,47 @@ export default function App() {
 
   const { completeAchievement } = useAchievements();
 
-  // ODSTRANĚNO: const [showInventory, setShowInventory] = useState(false);
+  // Stav pro Pinball Catcher
   const [extensionCatcher, setExtensionCatcher] = useState(false);
+  
+  // NOVÉ: Stav pro Breaker Power-ups
+  const [breakerPowerups, setBreakerPowerups] = useState(false);
 
   const [kimi, setKimi] = useState({ hunger: 0, clean: 0, energy: 0 });
 
   const ctrl = createKimiController(setKimi);
   const pinball = createPinballController(setExtensionCatcher);
 
-  // ODSTRANĚNO: const toggleInventory ...
-
   const handleClose = () => {
     console.log("Can't close the app!");
   };
+
   useEffect(() => {
     ctrl.load();
     pinball.load();
+
+    // NOVÉ: Načtení nastavení Breaker power-upů při startu aplikace
+    axios.get("http://127.0.0.1:5000/api/breaker/powerups")
+         .then(res => {
+             // Nastavíme stav podle toho, co vrátí databáze
+             setBreakerPowerups(res.data.powerups_enabled);
+         })
+         .catch(err => console.error("Failed to load breaker settings:", err));
   }, []);
+
+  // NOVÉ: Funkce pro přepínání power-upů a uložení na server
+  const toggleBreakerPowerups = () => {
+      const newState = !breakerPowerups;
+      setBreakerPowerups(newState); // Okamžitá vizuální změna
+      
+      // Odeslání změny na server
+      axios.post("http://127.0.0.1:5000/api/breaker/powerups", { enabled: newState })
+           .catch(err => {
+               console.error("Failed to save breaker settings:", err);
+               // V případě chyby vrátíme přepínač zpět
+               setBreakerPowerups(!newState);
+           });
+  };
 
   const navigate = useNavigate();
   const sceneCtrl = createSceneController({
@@ -54,23 +79,42 @@ export default function App() {
         <div className="scene card">
           <Scene controller={sceneCtrl} />
 
-          <button onClick={() => ctrl.feed()}> Feed Kimi 🍗 </button>
-          <button onClick={() => ctrl.clean()}> Clean Kimi 🧼 </button>
-          <button onClick={() => { ctrl.sleep(); completeAchievement(5); }} > Make Kimi sleep 💤</button>
-          <button onClick={() => ctrl.exercise()}> Make Kimi exercise ⚡</button>
+          <div className="actions">
+            <button onClick={() => ctrl.feed()}> Feed Kimi 🍗 </button>
+            <button onClick={() => ctrl.clean()}> Clean Kimi 🧼 </button>
+            <button onClick={() => { ctrl.sleep(); completeAchievement(5); }} > Make Kimi sleep 💤</button>
+            <button onClick={() => ctrl.exercise()}> Make Kimi exercise ⚡</button>
+          </div>
+
           <div className="Games">
-            {/* ... odkazy na hry zůstávají stejné ... */}
             <Link to="/pinball"><button>Spustit Pinball 🎮</button></Link>
             <Link to="/wallball" style={{ marginLeft: 8 }}><button>Spustit Wallball 🧱</button></Link>
-            <Link to="/breaker" style={{ marginLeft: 8 }}><button>Brick Breaker 🔨</button></Link>
+            
+            {/* Sekce pro Brick Breaker */}
+            <div style={{ display: "inline-block", marginLeft: 8 }}>
+                <Link to="/breaker"><button>Brick Breaker 🔨</button></Link>
+                {/* Tlačítko pro ovládání bonusů */}
+                <button 
+                    style={{ marginLeft: "5px", fontSize: "0.8rem", padding: "5px 10px" }} 
+                    onClick={toggleBreakerPowerups}
+                    title="Zapnout/Vypnout padající bonusy ve hře"
+                >
+                   Bonusy: <b>{breakerPowerups ? "ZAP" : "VYP"}</b>
+                </button>
+            </div>
+
             <Link to="/pizza" style={{ marginLeft: 8 }}><button>Decorate Pizza 🍕</button></Link>
-            <button style={{ marginLeft: "10px" }} onClick={() => pinball.toggle(extensionCatcher)}>
-              Catcher
-            </button>
-            <span style={{ margin: "10px" }}>
-              Stav: <b>{extensionCatcher ? "Zapnuto" : "Vypnuto"}</b>
-            </span>
-            <Link to="/solitaire"><button>Play Solitaire</button></Link>
+            
+            <div style={{ display: "inline-block", marginLeft: 10 }}>
+                <button onClick={() => pinball.toggle(extensionCatcher)}>
+                Catcher
+                </button>
+                <span style={{ marginLeft: "5px", color: "white" }}>
+                <b>{extensionCatcher ? "ON" : "OFF"}</b>
+                </span>
+            </div>
+            
+            <Link to="/solitaire" style={{ marginLeft: 8 }}><button>Play Solitaire</button></Link>
           </div>
         </div>
         
@@ -82,10 +126,10 @@ export default function App() {
 
         <div className="inventory card">
             <Inventory
-              isOpen={true} // Vždy otevřeno (načte data při mountu)
-              onClose={() => {}} // Není potřeba
+              isOpen={true} 
+              onClose={() => {}} 
               onUpdateKimiState={setKimi}
-              isEmbedded={true} // Zapne embedded styl
+              isEmbedded={true} 
             />
         </div>
       </div>
