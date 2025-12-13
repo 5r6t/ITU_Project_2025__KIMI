@@ -1,447 +1,303 @@
-import { useEffect, useRef, useState } from 'react'
-import Matter, { Engine, Render, Runner, Bodies, Body, Composite, Constraint, Events } from 'matter-js'
-import Header from "./meta_components/Header";
+import { useEffect, useRef, useState } from 'react';
+import Matter, { Engine, Render, Runner, Bodies, Body, Composite, Events, Constraint, Vector } from 'matter-js';
 import { useNavigate } from 'react-router-dom';
-import axios from "axios";
-import { useAchievements } from "./meta_components/AchievementContext";
+import Header from "./meta_components/Header";
+import { createPinballController } from "./controllers/pinballController";
 import './styles/Pinball.css';
 
-const API = axios.create({ baseURL: "http://127.0.0.1:5000/api/v1" });
+// --- KONFIGURACE ---
+const W = 1200;
+const H = 800;
+const WALL_THICKNESS = 40;
+const FLIPPER_COLOR = '#e74c3c';
+const BUMPER_COLOR = '#f1c40f';
+const BALL_COLOR = '#ecf0f1';
 
-// Sound effect helper
-const playSound = (src, volume = 1) => {
-  const audio = new Audio(src);
-  audio.volume = volume;
-  audio.play().catch(() => {});
-};
+// Konfigurace obchodu
+const SHOP_ITEMS = [
+    { id: 'bumper', name: 'Extra Bumper', price: 100, icon: 'O' },
+    { id: 'flipper_s', name: 'Mini Flipper', price: 250, icon: '/' },
+    { id: 'catcher', name: 'Magnet', price: 500, icon: 'U' },
+];
 
 export default function Pinball() {
-  const navigate = useNavigate();
-    const handleClose = () => {
-        navigate("/"); 
-  };
-  // achievement hook 
-  const { completeAchievement } = useAchievements();
+    const navigate = useNavigate();
+    const sceneRef = useRef(null);
+    const engineRef = useRef(Engine.create());
+    
+    // Reference na objekty
+    const leftFlipperRef = useRef(null);
+    const rightFlipperRef = useRef(null);
+    const plungerRef = useRef(null);
+    const ballRef = useRef(null);
 
-  const sceneRef = useRef(null)
-  const engineRef = useRef(Engine.create())
-  const [score, setScore] = useState(0)
-  const [record, setRecord] = useState(0)
+    // State
+    const [score, setScore] = useState(0);
+    const [record, setRecord] = useState(0);
+    const [money, setMoney] = useState(0);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [isPaused, setIsPaused] = useState(false);
 
-  // Refs for Matter objects (we will add/remove them)
-  const [extCatcher, setExtCatcher] = useState(false);
-  const catcherRef = useRef(null);
-  const catcherConstraintRef = useRef(null);
-  const catcherHolderRef = useRef(null);
+    const controller = useRef(
+        createPinballController(setScore, setRecord, setMoney, setIsPlaying, setIsPaused)
+    ).current;
 
-  // Reset record function
-  const resetRecord = async () => {
-    try {
-      const { data } = await API.post("/pinball/reset_record");
-      setRecord(data.record);
-      setScore(data.score); // beze změny, ale ať je stav konzistentní
-    } catch (e) {
-      console.warn("reset_record failed", e);
-    }
-  };
+    useEffect(() => { controller.init(); }, []);
 
-  useEffect(() => {
+    useEffect(() => {
+        const engine = engineRef.current;
+        const world = engine.world;
+        engine.gravity.y = 0.8;
 
-    // Fetch initial score and record from backend
-    (async () => {
-      const { data } = await API.get("/pinball/state");
-      setScore(data.score);   // můžeš držet i record ve vlastním useState
-      setRecord(data.record);
+        const render = Render.create({
+            element: sceneRef.current,
+            engine: engine,
+            options: { width: W, height: H, wireframes: false, background: 'transparent' }
+        });
 
-      // Fetch extension_catcher
-      try {
-        const ext = await API.get("/pinball/extension_catcher");
-        setExtCatcher(!!ext.data.extension_catcher);
-      } catch (e) {
-        console.warn("GET /pinball/extension_catcher failed", e);
-      }
-    })();
+        // --- 1. ZDI a OHRANIČENÍ ---
+        
+        // Vytáhneme si šikmé zdi do proměnných, abychom jim mohli nastavit collisionFilter
+        // GROUP: -1 (Levá strana), -2 (Pravá strana). 
+        // Objekty se stejným záporným číslem se NIKDY nesrazí.
+        const leftSlingshot = Bodies.rectangle(200, H - 150, 400, 20, { 
+            isStatic: true, 
+            angle: 0.55, // Trochu strmější úhel
+            render: { fillStyle: '#444' },
+            collisionFilter: { group: -1 } // <--- ZMĚNA: Skupina -1
+        });
 
-    // Window size
-    const width = 1600
-    const height = width / 2
+        const rightSlingshot = Bodies.rectangle(W - 300, H - 150, 400, 20, { 
+            isStatic: true, 
+            angle: -0.55, 
+            render: { fillStyle: '#444' },
+            collisionFilter: { group: -2 } // <--- ZMĚNA: Skupina -2
+        });
 
-    // Physics engine
-    const engine = engineRef.current
-    const world = engine.world
+        const walls = [
+            Bodies.rectangle(W/2, -WALL_THICKNESS, W, WALL_THICKNESS*2, { isStatic: true, render: { fillStyle: '#333' } }),
+            Bodies.rectangle(0, H/2, WALL_THICKNESS, H, { isStatic: true, render: { fillStyle: '#333' } }),
+            Bodies.rectangle(W, H/2, WALL_THICKNESS, H, { isStatic: true, render: { fillStyle: '#333' } }),
+            Bodies.rectangle(W - 80, H - 200, 20, 600, { isStatic: true, render: { fillStyle: '#444' } }),
+            Bodies.rectangle(W - 40, 40, 150, 20, { isStatic: true, angle: 0.7, render: { fillStyle: '#444' } }),
+            leftSlingshot, // Přidáme naše upravené slingshoty
+            rightSlingshot
+        ];
 
-    // Canvas renderer
-    const render = Render.create({
-      element: sceneRef.current,
-      engine,
-      options: {
-        width,
-        height,
-        wireframes: false,
-        background: '#0b1020'
-      }
-    })
-    Render.run(render)
-    const runner = Runner.create()
-    Runner.run(runner, engine)
-    // 120 FPS
-    runner.delta = 1000 / 120;
+        // --- 2. BUMPERY ---
+        const bumperOptions = { isStatic: true, label: 'bumper', restitution: 1.5, render: { fillStyle: BUMPER_COLOR } };
+        const bumpers = [
+            Bodies.circle(W / 2, 250, 30, bumperOptions),
+            Bodies.circle(W / 2 - 150, 350, 30, bumperOptions),
+            Bodies.circle(W / 2 + 150, 350, 30, bumperOptions)
+        ];
 
-    // Border walls
-    const borderOptions = { isStatic: true, render: { fillStyle: '#000000ff' } }
-    const borderWidth = width * 1 / 40
-    const borderOffsetFromEdge = width * 1 / 80
-    const borders = [
-      // Bottom - disabled for reset zone
-      // Bodies.rectangle(width / 2, height + borderOffsetFromEdge, width, borderWidth, borderOptions),
-      // Top
-      Bodies.rectangle(width / 2, -borderOffsetFromEdge, width, borderWidth, borderOptions),
-      // Left
-      Bodies.rectangle(-borderOffsetFromEdge, height / 2, borderWidth, height, borderOptions),
-      // Right
-      Bodies.rectangle(width + borderOffsetFromEdge, height / 2, borderWidth, height, borderOptions)
-    ]
+        // --- 3. FLIPPERY (Páčky) ---
+        // Nyní jim nastavíme collisionFilter, aby ignorovaly své sousední zdi
+        
+        // Levý flipper
+        const leftFlipper = Bodies.rectangle(380, H - 80, 180, 20, { 
+            render: { fillStyle: FLIPPER_COLOR },
+            chamfer: { radius: 10 },
+            collisionFilter: { group: -1 } // <--- ZMĚNA: Ignoruje leftSlingshot (-1)
+        });
+        const leftPivot = Constraint.create({
+            pointA: { x: 320, y: H - 80 },
+            bodyB: leftFlipper,
+            pointB: { x: -60, y: 0 },
+            stiffness: 1, length: 0
+        });
 
-    // Reset zone at the bottom
-    const resetZone = Bodies.rectangle(width / 2, height + borderOffsetFromEdge, width, borderWidth, {
-      isStatic: true,
-      isSensor: true,
-      render: { fillStyle: '#ff0000ff' }
-    })
+        // Pravý flipper
+        const rightFlipper = Bodies.rectangle(W - 480, H - 80, 180, 20, { 
+            render: { fillStyle: FLIPPER_COLOR },
+            chamfer: { radius: 10 },
+            collisionFilter: { group: -2 } // <--- ZMĚNA: Ignoruje rightSlingshot (-2)
+        });
+        const rightPivot = Constraint.create({
+            pointA: { x: W - 420, y: H - 80 },
+            bodyB: rightFlipper,
+            pointB: { x: 60, y: 0 },
+            stiffness: 1, length: 0
+        });
 
-    // Side slopes
-    const slopeOptions = { isStatic: true, render: { fillStyle: '#24324f' } }
-    const slopeLength = width * 1 / 4
-    const slopeWidth = width * 1 / 80
-    const slopes = [
-      Bodies.rectangle(width * 1 / 4, height * 3 / 4, slopeLength, slopeWidth, { ...slopeOptions, angle: 0.4 }),
-      Bodies.rectangle(width * 3 / 4, height * 3 / 4, slopeLength, slopeWidth, { ...slopeOptions, angle: -0.4 }),
-      Bodies.rectangle(width * 0.8 / 8, height * 2.72 / 4, slopeLength, slopeWidth, { ...slopeOptions, angle: 0.4 }),
-      Bodies.rectangle(width * 7.2 / 8, height * 2.72 / 4, slopeLength, slopeWidth, { ...slopeOptions, angle: -0.4 }),
-      Bodies.rectangle(width * 1 / 4, height * 1.2 / 4, slopeWidth, slopeLength, { ...slopeOptions }),
-      Bodies.rectangle(width * 3 / 4, height * 1.2 / 4, slopeWidth, slopeLength, { ...slopeOptions })
-    ]
+        leftFlipperRef.current = leftFlipper;
+        rightFlipperRef.current = rightFlipper;
 
-    // Bumpers
-    const bumperOptions = { isStatic: true, restitution: 1.2, render: { fillStyle: '#ffff00' } }
-    const bumperSize = width * 1 / 40
-    const bumpers = [ 
-      Bodies.circle(width * 2 / 5, height * 2 / 5, bumperSize, bumperOptions),
-      Bodies.circle(width * 1 / 2, height * 1 / 5, bumperSize, bumperOptions),
-      Bodies.circle(width * 3 / 5, height * 2 / 5, bumperSize, bumperOptions)
-    ]
-    // Score – add points when hitting a bumper
-    const scoreOnCollision = async (event) => {
-      for (const pair of event.pairs) {
-        const isBumperHit =
-          bumpers.some(b => b.id === pair.bodyA.id || b.id === pair.bodyB.id);
-        if (isBumperHit) {
-          const { data } = await API.post("/pinball/hit", { points: 10 });
-          playSound("/sounds/Boom.mp3", 0.2);
-          setScore(data.score);
-          setRecord(data.record); // If it got overwritten (e.g., server might add bonuses)
+        // 4. ODPALOVAČ a RESET
+        const plunger = Bodies.rectangle(W - 40, H - 20, 60, 40, { isStatic: true, render: { fillStyle: '#888' } });
+        plungerRef.current = plunger;
+        const resetZone = Bodies.rectangle(W/2, H + 50, W, 50, { isStatic: true, isSensor: true, label: 'reset' });
 
-          if (data.score == 30) {
-             completeAchievement(2); // unlock "30 Points"
-          }
-        }
-      }
-    };
-    Events.on(engine, 'collisionStart', scoreOnCollision);
+        Composite.add(world, [
+            ...walls, ...bumpers, 
+            leftFlipper, leftPivot, 
+            rightFlipper, rightPivot, 
+            plunger, resetZone
+        ]);
 
-    // Ball
-    const ballRadius = width * 1 / 160
-    const ballSpawn = { x: width * 5 / 6 + width * 1 / 80, y: height / 2 }
-    const ball = Bodies.circle(ballSpawn.x, ballSpawn.y, ballRadius, {
-      density: 1,
-      friction: 0,
-      frictionAir: 0.01,
-      restitution: 0.618,
-      render: { fillStyle: '#ffffff' }
-    })
+        // 5. OVLÁDÁNÍ
+        const keyState = { a: false, d: false, space: false };
+        const handleKeyDown = (e) => {
+            if (e.code === 'KeyA') keyState.a = true;
+            if (e.code === 'KeyD') keyState.d = true;
+            if (e.code === 'Space') keyState.space = true;
+        };
+        const handleKeyUp = (e) => {
+            if (e.code === 'KeyA') keyState.a = false;
+            if (e.code === 'KeyD') keyState.d = false;
+            if (e.code === 'Space') keyState.space = false;
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
 
-    // Reset the ball if it falls into the reset zone
-    const ballResetOnCollision = async (event) => {
-      for (const pair of event.pairs) {
-        if (
-          (pair.bodyA === ball && pair.bodyB === resetZone) ||
-          (pair.bodyB === ball && pair.bodyA === resetZone)
-        ) {
-          // Request backend to complete the round
-          const { data } = await API.post("/pinball/ball_lost");
-          setScore(data.score);     // Update score
-          setRecord(data.record);   // Update record if needed
+        // --- 6. LOGIKA UPDATE (Oprava padání flipperů) ---
+        const onBeforeUpdate = () => {
+            // Konstanty pro limity úhlů (v radiánech)
+            // 0 je vodorovně, záporné je nahoru, kladné dolů
+            const MAX_UP = -0.5;   // Jak moc nahoru může jít
+            const MAX_DOWN = 0.5;  // Jak moc dolů (klidová poloha)
 
-          // Reset ball position and velocity
-          Body.setPosition(ball, ballSpawn);
-          Body.setVelocity(ball, { x: 0, y: 0 });
+            // Levý Flipper
+            if (keyState.a) {
+                // Jdeme nahoru
+                if (leftFlipper.angle > MAX_UP) {
+                    Body.setAngularVelocity(leftFlipper, -0.45); // Rychlost nahoru
+                } else {
+                    // Tvrdý limit nahoře (zastaví se)
+                    Body.setAngle(leftFlipper, MAX_UP);
+                    Body.setAngularVelocity(leftFlipper, 0);
+                }
+            } else {
+                // Padáme dolů (Gravity + pomoc)
+                if (leftFlipper.angle < MAX_DOWN) {
+                    Body.setAngularVelocity(leftFlipper, 0.15); // Rychlost návratu
+                } else {
+                    // Tvrdý limit dole (ZARÁŽKA)
+                    Body.setAngle(leftFlipper, MAX_DOWN);
+                    Body.setAngularVelocity(leftFlipper, 0);
+                }
+            }
 
-          // Play sound
-          playSound("/sounds/Bruh.mp3", 0.3);
-        }
-      }
-    };
-    Events.on(engine, 'collisionStart', ballResetOnCollision);
+            // Pravý Flipper (zrcadlově obrácené úhly)
+            if (keyState.d) {
+                if (rightFlipper.angle < -MAX_UP) { // 0.5 (nahoru je pro pravý kladné číslo, pokud je otočený... moment, Matter úhly jsou globální)
+                    // Pozor: Pravý flipper má 0 vodorovně.
+                    // Aby šel špičkou nahoru, musí rotovat DOPRAVA (kladná velocity) -> úhel se zvětšuje?
+                    // Ne, počkat. Pravý flipper má pant vlevo (z jeho pohledu).
+                    // Zkusme logiku: Pravý flipper pivot je W-420. Špička směřuje doprava.
+                    // Aby šel nahoru, musí se točit PROTI směru hodinových ručiček (záporné) pokud je špička vlevo od pivotu.
+                    // Ale my máme pivot W-420 a těleso W-480. Těleso je VLEVO od pivotu. Špička směřuje doleva.
+                    // Takže nahoru = po směru hodinových ručiček = KLADNÁ velocity.
+                    
+                    // Zkusíme empiricky podle tvého původního kódu:
+                    // Původně jsi měl: Body.setAngularVelocity(rightFlipper, 0.25); -> Jde nahoru.
+                    // Takže MAX_UP pro pravý bude cca 0.5 a MAX_DOWN bude -0.5
+                    
+                    if (rightFlipper.angle < 0.5) {
+                        Body.setAngularVelocity(rightFlipper, 0.45);
+                    } else {
+                        Body.setAngle(rightFlipper, 0.5);
+                        Body.setAngularVelocity(rightFlipper, 0);
+                    }
+                } else {
+                    // Dolů
+                    if (rightFlipper.angle > -0.5) {
+                        Body.setAngularVelocity(rightFlipper, -0.15);
+                    } else {
+                        Body.setAngle(rightFlipper, -0.5);
+                        Body.setAngularVelocity(rightFlipper, 0);
+                    }
+                }
+            }
 
-    // Cannon (ball launcher)
-    function makeCurvedExit({
-      startX,
-      startY,
-      segments = 6,
-      segmentLength = 25,
-      radius = 100,
-      startAngle = 0.65,
-      angleStep = 0.15,
-      color = '#24324f'
-    }) {
-      const parts = []
-      for (let i = 0; i < segments; i++) {
-        const angle = startAngle - i * angleStep
-        const x = startX - Math.cos(angle) * radius
-        const y = startY - Math.sin(angle) * radius
+            // Odpalovač
+            if (keyState.space) {
+                if (ballRef.current && ballRef.current.position.x > W - 80 && ballRef.current.position.y > H - 150) {
+                    Body.setVelocity(ballRef.current, { x: 0, y: -35 });
+                }
+            }
+        };
+        Events.on(engine, 'beforeUpdate', onBeforeUpdate);
 
-        parts.push(
-          Bodies.rectangle(x, y, segmentLength, 20, {
-            isStatic: true,
-            angle: angle - Math.PI / 2,
-            render: { fillStyle: color }
-          })
-        )
-      }
-      return parts
-    }
-    const curve_top = makeCurvedExit({
-      startX: width * 4.7 / 6,
-      startY: height * 0.6 / 4,
-      segments: 11,
-      segmentLength: 25,
-      radius: 120,
-      startAngle: 3.15,
-      angleStep: 0.1,
-      color: '#24324f'
-    })
-    const cannon = [
-      Bodies.rectangle(width * 5 / 6, height / 2.5, height / 2, width * 1 / 80, { ...slopeOptions, angle: 1.571 }),   //  prava stena
-      Bodies.rectangle(width * 5 / 6 + width * 1 / 40, height / 2.5, height / 2, width * 1 / 80, { ...slopeOptions, angle: 1.571 }),  //  lava stena
-      ...curve_top
-    ]
+        // 7. KOLIZE
+        const onCollision = (event) => {
+            event.pairs.forEach((pair) => {
+                const { bodyA, bodyB } = pair;
+                if (bodyA.label === 'bumper' || bodyB.label === 'bumper') {
+                    setScore(p => p + 10); setMoney(p => p + 10);
+                }
+                if (bodyA.label === 'reset' || bodyB.label === 'reset') {
+                    respawnBall();
+                }
+            });
+        };
+        Events.on(engine, 'collisionStart', onCollision);
 
-    // Flippers
-    const flipperOptions = { density: 1, friction: 0, frictionAir: 0.1, render: { fillStyle: '#00ff00' } }
-    const flipperLength = width * 1 / 10
-    const flipperWidth = width * 1 / 80
-    const leftFlipperX = width * 3.35 / 8
-    const rightFlipperX = width * 4.65 / 8
-    const flipperY = height * 6.82 / 8
-    const leftFlipper = Bodies.rectangle(leftFlipperX, flipperY, flipperLength, flipperWidth, { ...flipperOptions })
-    const rightFlipper = Bodies.rectangle(rightFlipperX, flipperY, flipperLength, flipperWidth, { ...flipperOptions })
-    // Left flipper hinge
-    const leftFlipperConstraint = Constraint.create({
-      bodyA: leftFlipper,
-      pointA: { x: -flipperLength / 2, y: 0 },
-      pointB: { x: leftFlipperX - flipperLength / 2, y: flipperY },
-      stiffness: 0.5,
-      length: 0
-    })
-    // Right flipper hinge
-    const rightFlipperConstraint = Constraint.create({
-      bodyA: rightFlipper,
-      pointA: { x: flipperLength / 2, y: 0 },
-      pointB: { x: rightFlipperX + flipperLength / 2, y: flipperY },
-      stiffness: 0.5,
-      length: 0
-    })
+        const respawnBall = () => {
+            if (ballRef.current) Composite.remove(world, ballRef.current);
+            const ball = Bodies.circle(W - 40, H - 100, 15, { restitution: 0.5, render: { fillStyle: BALL_COLOR }, label: 'ball' });
+            ballRef.current = ball;
+            Composite.add(world, ball);
+        };
 
-    // Flipper blockers
-    const flipperBlockerOptions = { isStatic: true, render: { fillStyle: '#00ff00' } }
-    const leftFlipperBlocker = Bodies.circle(leftFlipperX + flipperLength / 4, flipperY + 75, flipperWidth / 2, flipperBlockerOptions)
-    const rightFlipperBlocker = Bodies.circle(rightFlipperX - flipperLength / 4, flipperY + 75, flipperWidth / 2, flipperBlockerOptions)
+        respawnBall();
+        Render.run(render);
+        const runner = Runner.create();
+        Runner.run(runner, engine);
 
-    // Keyboard controls
-    const up = { left: false, right: false }
-    const down = { left: false, right: false }
-    const sleep = (ms) => new Promise(res => setTimeout(res, ms));
-    let leftLocked = false;
-    let rightLocked = false;
-    let catcherLocked = false;
-    const onKeyDown = async (e) => {
-      // Left flipper
-      if ((e.code === 'ArrowLeft' || e.code === 'KeyA') && !leftLocked) {
-        leftLocked = true;       // 🔒 Block further press attempts
-        up.left = true;        // activate flipper
-        await sleep(100);        // wait 0.1 s while flipper goes up
-        up.left = false;       // deactivate flipper
-        down.left = true;     // activate flipper down
-        await sleep(50);       // wait 0.05 s while flipper goes down
-        down.left = false;    // deactivate flipper down
-        await sleep(350);       // wait a bit before unlocking
-        leftLocked = false;      // 🔓 Unblock
-      }
-      // Right flipper
-      if ((e.code === 'ArrowRight' || e.code === 'KeyD') && !rightLocked) {
-        rightLocked = true;
-        up.right = true;
-        await sleep(100);
-        up.right = false;
-        down.right = true;
-        await sleep(50);
-        down.right = false;
-        await sleep(350);
-        rightLocked = false;
-      }
-      // Launch the ball
-      if (e.code === 'Space' &&
-      (ball.position.x > width * 9 / 12 && ball.position.x < width * 11 / 12
-        && ball.position.y > height / 2 && ball.position.y < height * 3 / 4))
-      {
-        Body.setVelocity(ball, { x: 0, y: -30 })
-      }
-      // Catcher
-      if (e.code === 'KeyS' && !catcherLocked && catcherRef.current) {
-        catcherLocked = true;
-        Body.setVelocity(catcherRef.current, { x: 0, y: -30 })
-        await sleep(3000); // catcher up for 3 seconds
-        catcherLocked = false;
-      }
-    }
-    window.addEventListener('keydown', onKeyDown)
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+            Events.off(engine, 'beforeUpdate', onBeforeUpdate);
+            Events.off(engine, 'collisionStart', onCollision);
+            Render.stop(render);
+            Runner.stop(runner);
+            if (render.canvas) render.canvas.remove();
+            Composite.clear(world);
+            Engine.clear(engine);
+        };
+    }, []);
 
-    // Flipper control on each update
-    const beforeUpdate = () => {
-      const flipperSpeed = 0.25;
-      if (up.left)  Body.setAngularVelocity(leftFlipper, -flipperSpeed);
-      if (down.left) Body.setAngularVelocity(leftFlipper,  flipperSpeed);
-      if (up.right) Body.setAngularVelocity(rightFlipper,  flipperSpeed);
-      if (down.right) Body.setAngularVelocity(rightFlipper, -flipperSpeed);
-    };
-    Events.on(engine, 'beforeUpdate', beforeUpdate);
+    // ... (Zbytek komponenty - handleStart, return JSX - zůstává stejný) ...
+    
+    // Pro úplnost, zbytek kódu tlačítek a layoutu:
+    const handleStart = () => { controller.startGame(); };
+    const handlePause = () => { controller.togglePause(isPaused); };
+    const handleClose = () => { navigate("/"); };
 
-    // Add all static bodies to the world
-    Composite.add(world, [
-      ...borders, resetZone,
-      ...slopes,
-      ...cannon,
-      leftFlipper, rightFlipper,
-      leftFlipperConstraint, rightFlipperConstraint,
-      leftFlipperBlocker, rightFlipperBlocker,
-      ball, ...bumpers,
-    ])
-
-    // Cleanup on unmount
-    return () => {
-      // Remove catcher objects if they exist
-      if (catcherRef.current) {
-        Composite.remove(world, catcherRef.current);
-        catcherRef.current = null;
-      }
-      if (catcherConstraintRef.current) {
-        Composite.remove(world, catcherConstraintRef.current);
-        catcherConstraintRef.current = null;
-      }
-      if (catcherHolderRef.current) {
-        Composite.remove(world, catcherHolderRef.current);
-        catcherHolderRef.current = null;
-      }
-      Events.off(engine, 'collisionStart', scoreOnCollision);
-      Events.off(engine, 'collisionStart', ballResetOnCollision);
-      Events.off(engine, 'beforeUpdate', beforeUpdate);
-      window.removeEventListener('keydown', onKeyDown)
-      Render.stop(render)
-      Runner.stop(runner)
-      Composite.clear(world, false)
-      Engine.clear(engine)
-      render.canvas.remove()
-      render.textures = {}
-      engineRef.current = Engine.create() // Fresh engine for returning to the page
-    }
-  }, [])
-
-  useEffect(() => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    const world = engine.world;
-
-    // When there is no catcher and it should be enabled → create it
-    if (extCatcher && !catcherRef.current) {
-      const cW = ( (1600 * 4.65/8) - (1600 * 3.35/8) ) / 3;
-      const width = 1600;
-      const height = width / 2;
-      const flipperY = height * 6.82 / 8;
-
-      const catcher = Bodies.rectangle(width / 2, flipperY + 150, cW, (width * 1/40) / 2, { mass: 1000, render: { fillStyle: '#00ffff' } });
-      Body.setInertia(catcher, Infinity);
-
-      const catcherConstraint = Constraint.create({
-        bodyA: catcher,
-        pointA: { x: 0, y: 0 },
-        pointB: { x: width / 2, y: flipperY + 150 },
-        stiffness: 0.001
-      });
-
-      const catcherHolder = Bodies.rectangle(width / 2, flipperY + 200, cW, (width * 1/40) / 2, {
-        isStatic: true, render: { fillStyle: '#000000' }
-      });
-
-      Composite.add(world, [catcher, catcherConstraint, catcherHolder]);
-      catcherRef.current = catcher;
-      catcherConstraintRef.current = catcherConstraint;
-      catcherHolderRef.current = catcherHolder;
-    }
-
-    // When there is a catcher and it should be disabled → remove it
-    if (!extCatcher && catcherRef.current) {
-        Composite.remove(world, catcherRef.current);
-        Composite.remove(world, catcherConstraintRef.current);
-        Composite.remove(world, catcherHolderRef.current);
-        catcherRef.current = null;
-        catcherConstraintRef.current = null;
-        catcherHolderRef.current = null;
-      }
-  }, [extCatcher]);
-
-  return (
-    <div>
-      <div>
-        <Header title="Pinball" onClose={handleClose} />
-      </div>
-      <div
-        style={{
-          display: 'grid',
-          placeItems: 'center',
-          height: '100vh',
-          color: 'white',
-        }}
-      >
-        <div style={{ position: 'relative' }}>
-          <div ref={sceneRef} />
-          <div
-            style={{
-              position: 'absolute',
-              top: 8,
-              left: 8,
-              padding: '6px 10px',
-              background: '#0008',
-              borderRadius: 8,
-            }}
-          >
-            <strong>Skóre:</strong> {score} &nbsp; | &nbsp;
-            <strong>Rekord:</strong> {record}
-            &nbsp; | &nbsp; ⬅️/A &nbsp; ➡️/D — flippery, Space — vystřelit
-            {extCatcher && (
-              <>
-                &nbsp; | &nbsp; S — catcher
-              </>
-            )}
-            &nbsp;&nbsp;
-            <button
-              onClick={resetRecord}
-              style={{ padding: '2px 8px', marginLeft: 8 }}
-            >
-              Reset rekord
-            </button>
-          </div>
+    return (
+        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+            <Header title="Pinball Builder" onClose={handleClose} />
+            <div className="pinball-container">
+                <div className="pb-left-panel">
+                    <div className="pb-money-display">$ {money}</div>
+                    <h3>Obchod</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {SHOP_ITEMS.map((item) => (
+                            <div key={item.id} className="pb-shop-item">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <div style={{ width: '30px', height: '30px', background: '#555', display: 'grid', placeItems: 'center', borderRadius: '50%' }}>{item.icon}</div>
+                                    <span>{item.name}</span>
+                                </div>
+                                <span className="pb-item-price">${item.price}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <div className="pb-middle-panel">
+                    <div className="pb-game-wrapper">
+                        <div ref={sceneRef} className="pb-canvas-overlay" />
+                    </div>
+                </div>
+                <div className="pb-right-panel">
+                    <div className="pb-info-box"><div className="pb-score-label">Skóre</div><div className="pb-score-value">{score}</div></div>
+                    <div className="pb-info-box"><div className="pb-score-label">Rekord</div><div className="pb-score-value" style={{ color: '#f1c40f' }}>{record}</div></div>
+                    <div style={{ flex: 1 }}></div>
+                    <p style={{textAlign: 'center', color: '#666'}}>Ovládání: A / D / Space</p>
+                    {!isPlaying ? ( <button className="pb-btn pb-btn-start" onClick={handleStart}>START HRY</button> ) : ( <><button className="pb-btn pb-btn-pause" onClick={handlePause}>{isPaused ? "POKRAČOVAT" : "PAUZA ⏸"}</button><button className="pb-btn pb-btn-stop" onClick={() => controller.gameOver(score, money)}>UKONČIT</button></> )}
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 }
