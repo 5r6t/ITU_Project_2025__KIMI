@@ -1,0 +1,90 @@
+.carousel-wrapper {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+
+
+    height: 64px;
+
+    /* angled placement */
+    transform: skewY(-30deg) rotateX(0deg);
+    transform-origin: center;
+
+    /* arcade glow around whole module */
+    filter: drop-shadow(0 0 8px rgba(255, 40, 40, 0.7));
+}
+
+/* BUTTONS — now properly skewed */
+.carousel-btn {
+    background: #300;
+    /* dark red */
+    border: 2px solid #ff3b3b;
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: #ff7777;
+    border-radius: 6px;
+
+    padding: 0 12px;
+    height: 44px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    /* make buttons actually follow the wrapper’s skew */
+    perspective: 300px;
+
+    /* neon effect */
+    box-shadow:
+        0 0 6px #ff3b3b,
+        inset 0 0 4px #ff1f1f;
+}
+
+.carousel-btn:hover {
+    background: #500;
+    box-shadow:
+        0 0 12px #ff5a5a,
+        inset 0 0 6px #ff3030;
+    color: white;
+}
+
+/* MAIN ITEM SLOT */
+.carousel-item {
+    perspective: 600px;
+    height: 44px;
+    width: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* THE displayed button */
+.item-button {
+    width: 100%;
+    height: 100%;
+    white-space: nowrap;
+    transform-style: preserve-3d; 
+    /* arcade red glow */
+    background: linear-gradient(to bottom, #700, #400);
+    border: 2px solid #ff3b3b;
+    color: #ffaaaa;
+    font-weight: bold;
+
+    /* angled but subtle, so it doesn’t warp text too much */
+
+    border-radius: 6px;
+    cursor: pointer;
+
+    box-shadow:
+        0 0 8px rgba(255, 0, 0, 0.6),
+        inset 0 0 6px rgba(255, 0, 0, 0.5);
+}
+
+.item-button:hover {
+    background: linear-gradient(to bottom, #a00, #700);
+    color: white;
+    box-shadow:
+        0 0 12px rgba(255, 20, 20, 0.9),
+        inset 0 0 10px rgba(255, 0, 0, 0.8);
+}

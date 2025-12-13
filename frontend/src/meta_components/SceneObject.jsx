@@ -1,3 +1,5 @@
+import "../styles/Utils.css";
+
 export function SceneObject({
     id,
     svg,
@@ -12,6 +14,7 @@ export function SceneObject({
 
     return (
         <img
+            className="no_select"
             src={svg}
             alt={id}
             style={{

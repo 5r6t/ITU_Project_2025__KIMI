@@ -12,13 +12,13 @@ import { createKimiController } from "./controllers/kimiController";
 import { createPinballController } from "./controllers/pinballController";
 import { createSceneController } from "./controllers/sceneController";
 
-import { useAchievements } from "./meta_components/AchievementContext";
+//import { useAchievements } from "./meta_components/AchievementContext";
 import trophy from "./assets/trophy.svg";
 import './styles/App.css';
 
 export default function App() {
 
-  const { completeAchievement } = useAchievements();
+  //const { completeAchievement } = useAchievements();
 
   // Stav pro Pinball Catcher
   const [extensionCatcher, setExtensionCatcher] = useState(false);
@@ -68,6 +68,13 @@ export default function App() {
     kimiCtrl: ctrl,
   });
 
+  const sceneCarouselItems = [
+    { label: "Pinball", onClick: () => navigate("/pinball") },
+    { label: "Wallball", onClick: () => navigate("/wallball") },
+    { label: "Brick Breaker", onClick: () => navigate("/breaker") },
+    { label: "Solitaire", onClick: () => navigate("/solitaire") },
+  ];
+
   return (
     <div className="page">
       <Header title="Kimi" onClose={handleClose}>
@@ -77,33 +84,22 @@ export default function App() {
       <div className="app-container">
 
         <div className="scene card">
-          <Scene controller={sceneCtrl} />
-
-          <div className="actions">
-            <button onClick={() => ctrl.feed()}> Feed Kimi 🍗 </button>
-            <button onClick={() => ctrl.clean()}> Clean Kimi 🧼 </button>
-            <button onClick={() => { ctrl.sleep(); completeAchievement(5); }} > Make Kimi sleep 💤</button>
-            <button onClick={() => ctrl.exercise()}> Make Kimi exercise ⚡</button>
-          </div>
+          <Scene controller={sceneCtrl} carouselItems={sceneCarouselItems} />
 
           <div className="Games">
-            <Link to="/pinball"><button>Spustit Pinball 🎮</button></Link>
-            <Link to="/wallball" style={{ marginLeft: 8 }}><button>Spustit Wallball 🧱</button></Link>
             
             {/* Sekce pro Brick Breaker */}
             <div style={{ display: "inline-block", marginLeft: 8 }}>
-                <Link to="/breaker"><button>Brick Breaker 🔨</button></Link>
                 {/* Tlačítko pro ovládání bonusů */}
                 <button 
                     style={{ marginLeft: "5px", fontSize: "0.8rem", padding: "5px 10px" }} 
                     onClick={toggleBreakerPowerups}
                     title="Zapnout/Vypnout padající bonusy ve hře"
                 >
-                   Bonusy: <b>{breakerPowerups ? "ZAP" : "VYP"}</b>
+                   Bonusy pre Brick Breaker: <b>{breakerPowerups ? "ZAP" : "VYP"}</b>
                 </button>
             </div>
 
-            <Link to="/pizza" style={{ marginLeft: 8 }}><button>Decorate Pizza 🍕</button></Link>
             
             <div style={{ display: "inline-block", marginLeft: 10 }}>
                 <button onClick={() => pinball.toggle(extensionCatcher)}>
@@ -114,7 +110,6 @@ export default function App() {
                 </span>
             </div>
             
-            <Link to="/solitaire" style={{ marginLeft: 8 }}><button>Play Solitaire</button></Link>
           </div>
         </div>
         

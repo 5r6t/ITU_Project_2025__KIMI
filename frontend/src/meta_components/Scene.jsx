@@ -1,8 +1,12 @@
 // Scene.jsx
-import { sceneObjects } from "../models/sceneModel";
+import { sceneObjects, sceneUi } from "../models/sceneModel";
+import SceneCarousel from "./SceneCarousel";
 import { SceneObject } from "./SceneObject";
+import "../styles/SceneCarousel.css";
 
-export function Scene({ controller }) {
+export function Scene({ controller, carouselItems = [] }) {
+    const { gamesCarousel } = sceneUi;
+
     return (
         <>
             {Object.values(sceneObjects).map(obj => (
@@ -12,6 +16,13 @@ export function Scene({ controller }) {
                     onClick={controller.handleObjectClick}
                 />
             ))}
+            {carouselItems.length > 0 && (
+                <SceneCarousel
+                    items={carouselItems}
+                    x={gamesCarousel.x}
+                    y={gamesCarousel.y}
+                />
+            )}
         </>
     );
 }

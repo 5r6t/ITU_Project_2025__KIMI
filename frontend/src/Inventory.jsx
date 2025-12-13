@@ -15,31 +15,31 @@ function ItemCard({ item, onUseItem }) {
     let effectText = "";
     
     // 1. Hardcoded efekty pro základní předměty
-    if (item.name === "Cheese") effectText = "Hlad +20, Čistota -5";
-    else if (item.name === "Soap") effectText = "Čistota +30";
-    else if (item.name === "Energy Drink") effectText = "Energie +40, Čistota -5";
+    if (item.name === "Cheese") effectText = "Hunger +20, Clean -5";
+    else if (item.name === "Soap") effectText = "Clean +30";
+    else if (item.name === "Energy Drink") effectText = "Energy +40, Clean -5";
     
     // 2. Dynamické efekty pro PIZZU (pokud přišly ze serveru)
     else if (isPizza && item.effects) {
         const parts = [];
         // Hlad
         if (item.effects.hunger) {
-            parts.push(`Hlad ${item.effects.hunger > 0 ? '+' : ''}${item.effects.hunger}`);
+            parts.push(`Hunger ${item.effects.hunger > 0 ? '+' : ''}${item.effects.hunger}`);
         }
         // Čistota
         if (item.effects.clean) {
-            parts.push(`Čistota ${item.effects.clean > 0 ? '+' : ''}${item.effects.clean}`);
+            parts.push(`Clean ${item.effects.clean > 0 ? '+' : ''}${item.effects.clean}`);
         }
-        // Energie
+        // Energy
         if (item.effects.energy) {
-            parts.push(`Energie ${item.effects.energy > 0 ? '+' : ''}${item.effects.energy}`);
+            parts.push(`Energy ${item.effects.energy > 0 ? '+' : ''}${item.effects.energy}`);
         }
         
-        effectText = parts.length > 0 ? parts.join(", ") : "Žádný efekt";
+        effectText = parts.length > 0 ? parts.join(", ") : "No effect";
     } 
     // 3. Fallback
     else {
-        effectText = "Neznámý efekt";
+        effectText = "Unknown effect";
     }
 
     return (
@@ -87,7 +87,7 @@ function ItemCard({ item, onUseItem }) {
                 onClick={() => onUseItem(item.name)} 
                 disabled={item.quantity <= 0}
             >
-                Sníst
+                Consume
             </button>
         </div>
     );
@@ -141,7 +141,7 @@ export default function Inventory({ isOpen, onClose, onUpdateKimiState, isEmbedd
     return (
         <div className={panelClass}>
             <div className="panel-header">
-                <h2>Batoh</h2>
+                <h2>Inventory</h2>
                 {!isEmbedded && (
                     <button className="close-button" onClick={onClose}>&times;</button>
                 )}
