@@ -9,7 +9,6 @@ import Inventory from "./Inventory";
 import { Scene } from "./meta_components/Scene";
 
 import { createKimiController } from "./controllers/kimiController";
-import { createPinballController } from "./controllers/pinballController";
 import { createSceneController } from "./controllers/sceneController";
 
 //import { useAchievements } from "./meta_components/AchievementContext";
@@ -19,9 +18,6 @@ import './styles/App.css';
 export default function App() {
 
   //const { completeAchievement } = useAchievements();
-
-  // Stav pro Pinball Catcher
-  const [extensionCatcher, setExtensionCatcher] = useState(false);
   
   // NOVÉ: Stav pro Breaker Power-ups
   const [breakerPowerups, setBreakerPowerups] = useState(false);
@@ -29,7 +25,6 @@ export default function App() {
   const [kimi, setKimi] = useState({ hunger: 0, clean: 0, energy: 0 });
 
   const ctrl = createKimiController(setKimi);
-  const pinball = createPinballController(setExtensionCatcher);
 
   const handleClose = () => {
     console.log("Can't close the app!");
@@ -37,7 +32,6 @@ export default function App() {
 
   useEffect(() => {
     ctrl.load();
-    pinball.load();
 
     // NOVÉ: Načtení nastavení Breaker power-upů při startu aplikace
     axios.get("http://127.0.0.1:5000/api/breaker/powerups")
@@ -99,17 +93,6 @@ export default function App() {
                    Bonusy pre Brick Breaker: <b>{breakerPowerups ? "ZAP" : "VYP"}</b>
                 </button>
             </div>
-
-            
-            <div style={{ display: "inline-block", marginLeft: 10 }}>
-                <button onClick={() => pinball.toggle(extensionCatcher)}>
-                Catcher
-                </button>
-                <span style={{ marginLeft: "5px", color: "white" }}>
-                <b>{extensionCatcher ? "ON" : "OFF"}</b>
-                </span>
-            </div>
-            
           </div>
         </div>
         
