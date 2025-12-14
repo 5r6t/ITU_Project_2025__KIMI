@@ -305,7 +305,14 @@ def create_default_achievements(user_id):
         # Pinball achievements
         ("Pinball Rich", 50),   # ID 5: Zisk 50 peněz
         ("Pinball Wizard", 100),# ID 6: Rekord 100
-        ("Builder", 1)          # ID 7: Položení prvku
+        ("Builder", 1),         # ID 7: Položení prvku
+
+        # Brick Breaker achievements
+        ("Breaker Rookie", 500),   # Dosáhni 500 skóre
+        ("Brick Destroyer", 2000), # Dosáhni 2000 skóre
+        ("World Traveler", 1),     # Odemkni svět 3
+        ("Breaker Champion", 1),   # Vyhraj celou hru
+        ("Hardcore Legend", 1)     # Dokonči hru v hardcore režimu
     ]
     with connect() as con:
         cur = con.cursor()
