@@ -1,3 +1,7 @@
+/*
+Inventory Component: PizzaBaking.jsx
+Author: Šimon Dufek
+*/
 import { useState, useEffect } from "react";
 import axios from "axios";
 import './styles/Inventory.css'; 

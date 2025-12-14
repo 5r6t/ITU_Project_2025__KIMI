@@ -11,3 +11,4 @@ frontend/package.json
 backend/__pycache__
 backend/database.db
 *.pyc
+backend/requirements.txt
