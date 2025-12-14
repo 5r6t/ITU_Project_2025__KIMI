@@ -1,4 +1,5 @@
 import sqlite3
+import json
 
 CONST_DB_FILE = "database.db"
 
@@ -144,6 +145,15 @@ def init_db():
             );
         """)
 
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS SolitaireState (
+                user_id INTEGER PRIMARY KEY,
+                state_json TEXT,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES User(user_id)
+            );
+        """)
+
     print("Database initialized! ^w^")
 
 def destroy():
@@ -164,7 +174,8 @@ def destroy():
         "WallballLevelState",
         "User",
         "BrickBreaker",
-        "SavedPizza"
+        "SavedPizza",
+        "SolitaireState"
     ]
 
     for table in tables:
@@ -728,3 +739,31 @@ def get_saved_pizza(pizza_id):
         if not r:
             return None
         return {"pizza_id": r[0], "pizza_name": r[1], "pizza_data": r[2], "user_id": r[3], "created_at": r[4]}
+
+# --- SOLITAIRE STATE ---
+
+def save_solitaire_state(user_id, state_obj):
+    """Persist solitaire state as JSON for the given user."""
+    if state_obj is None:
+        return False
+    payload = json.dumps(state_obj)
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("""
+            INSERT INTO SolitaireState (user_id, state_json, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id) DO UPDATE SET state_json=excluded.state_json, updated_at=CURRENT_TIMESTAMP
+        """, (user_id, payload))
+        return True
+
+def get_solitaire_state(user_id):
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("SELECT state_json FROM SolitaireState WHERE user_id=?", (user_id,))
+        row = cur.fetchone()
+        if not row or row[0] is None:
+            return None
+        try:
+            return json.loads(row[0])
+        except Exception:
+            return None

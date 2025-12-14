@@ -353,6 +353,25 @@ def breaker_progress_post():
     world_index = int(data.get("worldIndex", 0))
     return jsonify(update_breaker_progress(ADMIN_ID, world_index))
 
+# --- SOLITAIRE ENDPOINTS ---
+@app.route("/api/solitaire/state", methods=["GET"])
+def solitaire_state_get():
+    state = get_solitaire_state(ADMIN_ID)
+    return jsonify({"state": state})
+
+@app.route("/api/solitaire/save", methods=["POST"])
+def solitaire_state_save():
+    data = request.get_json(force=True) or {}
+    state = data.get("state")
+    if state is None:
+        return jsonify({"error": "missing state"}), 400
+    try:
+        save_solitaire_state(ADMIN_ID, state)
+        return jsonify({"success": True})
+    except Exception as e:
+        print("Failed to save solitaire state:", e)
+        return jsonify({"error": "failed to save"}), 500
+
 # --- PIZZA ENDPOINTS ---
 
 @app.route("/pizza/save", methods=["POST"])

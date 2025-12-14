@@ -24,7 +24,7 @@ export default function SceneCarousel({ items = [], x, y }) {
                 top: y,
             }}
         >
-            <button className="carousel-btn" onClick={prev}>&#9650;</button>
+            <button className="carousel-btn" onClick={prev}>&#9664;</button>
 
             <div className="carousel-item">
                 <button onClick={current.onClick} className="item-button">
@@ -32,7 +32,7 @@ export default function SceneCarousel({ items = [], x, y }) {
                 </button>
             </div>
 
-            <button className="carousel-btn" onClick={next}>&#9660;</button>
+            <button className="carousel-btn" onClick={next}>&#9654;</button>
         </div>
     );
 }

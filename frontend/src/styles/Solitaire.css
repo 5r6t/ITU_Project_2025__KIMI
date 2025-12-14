@@ -4,8 +4,6 @@ Author: Jaroslav Mervart
 */
 .solimain {
   background: linear-gradient(125deg, #6bc900 0%, #2b7a00 100%);
-
-
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -16,4 +14,225 @@ Author: Jaroslav Mervart
   font-family: sans-serif;
 
   height: 100vh;
+}
+
+.sol-controls {
+  width: 100%;
+  max-width: 1200px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  color: #f1f5f9;
+}
+
+.sol-button {
+  background: #0d5d20;
+  color: #f1f5f9;
+  border: 1px solid #0b4c1a;
+  border-radius: 6px;
+  padding: 8px 40px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #083713;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.sol-button:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 0 #083713;
+}
+
+.sol-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sol-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.save-label {
+  font-size: 12px;
+  color: #e8ffe1;
+}
+
+.sol-status {
+  min-height: 24px;
+  font-size: 14px;
+  text-align: right;
+  color: #e8ffe1;
+}
+
+.sol-top-row {
+  width: 100%;
+  max-width: 1200px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 16px;
+}
+
+.stock-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stock-slot,
+.waste-slot,
+.foundation-slot {
+  width: 96px;
+  height: 136px;
+  border: 1px dashed rgba(255, 255, 255, 0.5);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+}
+
+.foundation-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.stock-count {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #e8ffe1;
+}
+
+.foundations {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.foundation-label {
+  font-size: 12px;
+  text-transform: capitalize;
+  text-align: center;
+  color: #e8ffe1;
+}
+
+.tableau {
+  width: 100%;
+  max-width: 1200px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.tableau-pile {
+  position: relative;
+  width: 96px;
+  min-height: 200px;
+  padding-top: 6px;
+  background: rgba(0, 0, 0, 0.12);
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.tableau-card {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+}
+
+.sol-empty {
+  color: #e8ffe1;
+  font-size: 12px;
+  padding: 6px;
+  text-align: center;
+  width: 100%;
+}
+
+.sol-card {
+  position: relative;
+  width: 87px;
+  height: 130px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  background: #fff;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sol-card.is-back {
+  background: linear-gradient(135deg, #134e13, #0f3f0f);
+  color: #e8ffe1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-back {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-back__band {
+  width: 70%;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  margin-bottom: 6px;
+}
+
+.card-back__label {
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.card-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.card-missing {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #8b2a2a;
+  color: #fff;
+  font-weight: 700;
+}
+
+.sol-card.is-selected {
+  outline: 3px solid #f4d35e;
+  box-shadow: 0 0 0 4px rgba(244, 211, 94, 0.35), 0 6px 12px rgba(0, 0, 0, 0.25);
+}
+
+.drop-target {
+  outline: 2px dashed rgba(244, 211, 94, 0.8);
+  outline-offset: 3px;
 }
