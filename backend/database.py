@@ -136,6 +136,15 @@ def init_db():
         """)
 
         cur.execute("""
+            CREATE TABLE IF NOT EXISTS BreakerSaveState (
+                user_id INTEGER PRIMARY KEY,
+                state_json TEXT,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES User(user_id)
+            );
+        """)
+
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS BrickBreaker (
                 user_id INTEGER PRIMARY KEY,
                 high_score INTEGER DEFAULT 0,
@@ -175,7 +184,8 @@ def destroy():
         "User",
         "BrickBreaker",
         "SavedPizza",
-        "SolitaireState"
+        "SolitaireState",
+        "BreakerSaveState"
     ]
 
     for table in tables:
@@ -710,10 +720,34 @@ def update_breaker_progress(user_id: int, new_level: int):
             SET breaker_max_level = ? 
             WHERE user_id=? AND ? > breaker_max_level
         """, (new_level, user_id, new_level))
-        
-    # FIX: We return the progress OUTSIDE the 'with' block.
-    # This ensures the transaction above is committed before we read from the DB.
     return get_breaker_progress(user_id)
+
+def save_breaker_state(user_id, state_json):
+    """Uloží kompletní JSON stav hry."""
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("""
+            INSERT INTO BreakerSaveState (user_id, state_json, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id) DO UPDATE SET 
+                state_json = excluded.state_json,
+                updated_at = CURRENT_TIMESTAMP;
+        """, (user_id, state_json))
+
+def load_breaker_state(user_id):
+    """Načte uložený JSON stav hry."""
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("SELECT state_json FROM BreakerSaveState WHERE user_id=?", (user_id,))
+        row = cur.fetchone()
+        return row[0] if row else None
+
+def clear_breaker_state(user_id):
+    """Smaže uloženou hru (např. při Game Over nebo Restartu)."""
+    with connect() as con:
+        con.execute("DELETE FROM BreakerSaveState WHERE user_id=?", (user_id,))
+
+# --- SAVED PIZZA FUNKCE ---
 
 def save_pizza(user_id, pizza_name, pizza_json):
     with connect() as con:

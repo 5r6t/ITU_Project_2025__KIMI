@@ -18,6 +18,7 @@ export const DIFFICULTIES = {
     HARD: { label: "Těžká", paddleWidth: 120, ballSpeed: 6, lives: 2, color: "#e74c3c", scoreMultiplier: 2.5 }
 };
 
+// ... (Konstanty pro cihly PADDLE_WIDTH_EXPANDED, BRICK_ROWS atd. zůstávají stejné) ...
 const PADDLE_WIDTH_EXPANDED = 300;
 const BRICK_ROWS = 5;
 const BRICK_COLS = 8;
@@ -89,13 +90,11 @@ export const BreakerModel = {
         return res.data.powerups_enabled;
     },
 
-    // NOVÉ: Načtení odemčených světů
     async fetchProgress() {
         try { return (await axios.get(`${API_URL}/api/breaker/progress`)).data.maxUnlockedWorld || 0; }
         catch (e) { return 0; }
     },
 
-    // NOVÉ: Uložení postupu
     async saveProgress(worldIndex) {
         try { 
             const res = await axios.post(`${API_URL}/api/breaker/progress`, { worldIndex });
@@ -103,9 +102,37 @@ export const BreakerModel = {
         } catch (e) { return null; }
     },
 
+    // --- NOVÉ METODY PRO UKLÁDÁNÍ STAVU ---
+    
+    async saveGameState(state) {
+        try {
+            await axios.post(`${API_URL}/api/breaker/state`, state);
+        } catch (e) {
+            console.error("Chyba auto-save:", e);
+        }
+    },
+
+    async loadGameState() {
+        try {
+            const res = await axios.get(`${API_URL}/api/breaker/state`);
+            return res.data.state; 
+        } catch (e) {
+            return null;
+        }
+    },
+
+    async clearGameState() {
+        try {
+            await axios.delete(`${API_URL}/api/breaker/state`);
+        } catch (e) {
+            console.error("Chyba mazání save:", e);
+        }
+    },
+
+    // ----------------------------------------
+
     initGameLocal(difficultyKey = 'NORMAL', worldIndex = 0, unlockedWorldMax = 0) {
         const settings = DIFFICULTIES[difficultyKey] || DIFFICULTIES.NORMAL;
-        
         const safeWorldIndex = worldIndex <= unlockedWorldMax ? worldIndex : unlockedWorldMax;
 
         let initialState = {
@@ -137,25 +164,23 @@ export const BreakerModel = {
     },
 
     movePaddle(state, direction) {
+        // ... (Kód zůstává stejný) ...
         if (state.gameOver || state.gameWon || !state.gameStarted) return state;
         let newPaddleX = state.paddleX;
         const paddleSpeed = state.baseSpeed * 2; 
-
         if (direction === 'left') newPaddleX -= paddleSpeed;
         else if (direction === 'right') newPaddleX += paddleSpeed;
-        
         if (newPaddleX < 0) newPaddleX = 0;
         if (newPaddleX + state.paddleWidth > GAME_WIDTH) newPaddleX = GAME_WIDTH - state.paddleWidth;
-        
         const updatedBalls = state.balls.map(ball => {
             if (!ball.moving) return { ...ball, x: newPaddleX + state.paddleWidth / 2 };
             return ball;
         });
-        
         return { ...state, paddleX: newPaddleX, balls: updatedBalls };
     },
 
     launchBall(state) {
+        // ... (Kód zůstává stejný) ...
         if (state.gameOver || state.gameWon || !state.gameStarted) return state;
         const launchedBalls = state.balls.map(ball => ({ ...ball, moving: true }));
         if (state.balls.some(b => !b.moving)) return { ...state, balls: launchedBalls };
@@ -163,6 +188,9 @@ export const BreakerModel = {
     },
 
     updatePhysics(state) {
+        // ... (Celá logika fyziky updatePhysics zůstává stejná) ...
+        // (Zkopírujte původní tělo funkce updatePhysics, zde zkráceno pro přehlednost)
+        
         if (state.gameOver || state.gameWon || !state.gameStarted) return state;
 
         let { 
@@ -262,11 +290,9 @@ export const BreakerModel = {
         
         if (activeBricksCount === 0 && !newGameOver) {
             subLevelIndex++; 
-            
             if (subLevelIndex >= LEVELS[worldIndex].length) {
                 worldIndex++; 
                 subLevelIndex = 0; 
-                
                 if (worldIndex > maxUnlockedWorld) {
                     maxUnlockedWorld = worldIndex;
                 }

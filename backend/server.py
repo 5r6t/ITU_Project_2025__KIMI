@@ -340,20 +340,44 @@ def breaker_powerups_post():
     enabled = bool(data.get("enabled", False))
     return jsonify(set_breaker_powerups(ADMIN_ID, enabled))
 
-# --- ZMĚNA ZDE: NOVÉ ENDPOINTY PRO PROGRESS ---
 @app.route("/api/breaker/progress", methods=["GET"])
 def breaker_progress_get():
-    """Vrátí aktuálně odemčený svět."""
     return jsonify(get_breaker_progress(ADMIN_ID))
 
 @app.route("/api/breaker/progress", methods=["POST"])
 def breaker_progress_post():
-    """Uloží postup (odemkne nový svět), pokud je vyšší než současný."""
     data = request.get_json(force=True) or {}
     world_index = int(data.get("worldIndex", 0))
     return jsonify(update_breaker_progress(ADMIN_ID, world_index))
 
+@app.route("/api/breaker/state", methods=["POST"])
+def breaker_save_state_endpoint():
+    """Uloží kompletní stav hry jako JSON."""
+    data = request.get_json(force=True)
+    save_breaker_state(ADMIN_ID, json.dumps(data))
+    return jsonify({"success": True})
+
+@app.route("/api/breaker/state", methods=["GET"])
+def breaker_load_state_endpoint():
+    """Načte uložený stav hry."""
+    json_str = load_breaker_state(ADMIN_ID)
+    if not json_str:
+        return jsonify({"state": None})
+    try:
+        state = json.loads(json_str)
+        return jsonify({"state": state})
+    except Exception as e:
+        print(f"Chyba parsování Breaker state: {e}")
+        return jsonify({"state": None})
+
+@app.route("/api/breaker/state", methods=["DELETE"])
+def breaker_clear_state_endpoint():
+    """Smaže uloženou hru (např. po Game Over)."""
+    clear_breaker_state(ADMIN_ID)
+    return jsonify({"success": True})
+
 # --- SOLITAIRE ENDPOINTS ---
+
 @app.route("/api/solitaire/state", methods=["GET"])
 def solitaire_state_get():
     state = get_solitaire_state(ADMIN_ID)
