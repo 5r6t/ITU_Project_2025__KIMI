@@ -48,7 +48,7 @@ http://localhost:5173
 │       achievementController.js (Jaroslav Mervart)
 │       breakerController.js (Šimon Dufek)
 │       kimiController.js (Jaroslav Mervart)
-│       pinballController.js (Šimon Dufek)
+│       pinballController.js (Pavel Hýža)
 │       pizzaController.js (Šimon Dufek)
 │       sceneController.js (Jaroslav Mervart)
 │       solitaireController.js (Jaroslav Mervart)
