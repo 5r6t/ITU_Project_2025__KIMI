@@ -18,12 +18,10 @@ function ItemCard({ item, onUseItem }) {
     // Logika pro text efektů
     let effectText = "";
     
-    // 1. Hardcoded efekty pro základní předměty
     if (item.name === "Cheese") effectText = "Hunger +20, Clean -5";
     else if (item.name === "Soap") effectText = "Clean +30";
     else if (item.name === "Energy Drink") effectText = "Energy +40, Clean -5";
     
-    // 2. Dynamické efekty pro PIZZU (pokud přišly ze serveru)
     else if (isPizza && item.effects) {
         const parts = [];
         // Hlad
@@ -41,7 +39,6 @@ function ItemCard({ item, onUseItem }) {
         
         effectText = parts.length > 0 ? parts.join(", ") : "No effect";
     } 
-    // 3. Fallback
     else {
         effectText = "Unknown effect";
     }
@@ -112,7 +109,6 @@ export default function Inventory({ isOpen, onClose, onUpdateKimiState, isEmbedd
         setLoading(true);
         try {
             const res = await axios.get("http://127.0.0.1:5000/inventory");
-            // Backend nyní vrací { items: [ ... ] }, kde itemy už mají 'toppings' a 'pizza_color'
             setInventory(res.data.items || []); 
         } catch (error) {
             console.error("Chyba při načítání inventáře:", error);
@@ -127,7 +123,6 @@ export default function Inventory({ isOpen, onClose, onUpdateKimiState, isEmbedd
             if (onUpdateKimiState) {
                 onUpdateKimiState(res.data);
             }
-            // Po použití znovu načteme inventář (pro aktualizaci počtů)
             loadInventory();
         } catch (error) {
             console.error("Chyba při použití položky:", error);

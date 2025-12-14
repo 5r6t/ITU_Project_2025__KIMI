@@ -1,4 +1,7 @@
-/* Styl pro kartu */
+/*
+Styles for Inventory Component 
+Author: Šimon Dufek
+*/
 .inventory-item-card {
     display: flex;
     flex-direction: column; /* Stack layout pro mobil/panel */
