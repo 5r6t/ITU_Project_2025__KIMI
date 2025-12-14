@@ -194,6 +194,8 @@ def use_item_api(item_name):
     remove_from_inventory(ADMIN_ID, ingredient_id, 1)
     return jsonify(updated_state)
 
+# --- PINBALL ENDPOINTS ---
+
 @app.route("/api/v1/pinball/state", methods=["GET"])
 def pinball_state():
     ensure_pinball_row(ADMIN_ID)
@@ -216,17 +218,48 @@ def pinball_reset_record():
     ensure_pinball_row(ADMIN_ID)
     return jsonify(reset_pinball_record(ADMIN_ID))
 
-@app.route("/api/v1/pinball/extension_catcher", methods=["GET"])
-def ext_catcher_get():
+@app.route("/api/v1/pinball/cheat_money", methods=["POST"])
+def pinball_cheat_money():
     ensure_pinball_row(ADMIN_ID)
-    return jsonify(get_extension_catcher(ADMIN_ID))
+    new_money = add_pinball_money(ADMIN_ID, 1000)
+    return jsonify({"money": new_money})
 
-@app.route("/api/v1/pinball/extension_catcher", methods=["POST"])
-def ext_catcher_post():
+@app.route("/api/v1/pinball/place_item", methods=["POST"])
+def pinball_place_item():
     ensure_pinball_row(ADMIN_ID)
-    data = request.get_json(force=True) or {}
-    enabled = bool(data.get("enabled", False))
-    return jsonify(set_extension_catcher(ADMIN_ID, enabled))
+    data = request.get_json(force=True)
+    item_type = data.get("type")
+    x = data.get("x")
+    y = data.get("y")
+    price = data.get("price", 0)
+    
+    result = buy_pinball_item(ADMIN_ID, item_type, x, y, price)
+    if not result:
+        return jsonify({"error": "Not enough money"}), 400
+    return jsonify(result)
+
+@app.route("/api/v1/pinball/move_item", methods=["POST"])
+def pinball_move_item():
+    ensure_pinball_row(ADMIN_ID)
+    data = request.get_json(force=True)
+    item_id = data.get("item_id")
+    x = data.get("x")
+    y = data.get("y")
+    
+    move_pinball_item(ADMIN_ID, item_id, x, y)
+    return jsonify({"success": True})
+
+@app.route("/api/v1/pinball/remove_item", methods=["POST"])
+def pinball_remove_item():
+    ensure_pinball_row(ADMIN_ID)
+    data = request.get_json(force=True)
+    item_id = data.get("item_id")
+    price = data.get("price", 0)
+    
+    result = remove_pinball_item(ADMIN_ID, item_id, price)
+    return jsonify(result)
+
+# --- BRICK BREAKER ENDPOINTS ---
 
 @app.route("/api/breaker/stats", methods=["GET"])
 def breaker_stats():

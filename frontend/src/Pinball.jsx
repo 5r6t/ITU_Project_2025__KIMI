@@ -5,7 +5,6 @@ import Header from "./meta_components/Header";
 import { createPinballController } from "./controllers/pinballController";
 import './styles/Pinball.css';
 
-// --- KONFIGURACE ---
 const W = 1200;
 const H = 800;
 const WALL_THICKNESS = 40;
@@ -13,11 +12,8 @@ const FLIPPER_COLOR = '#e74c3c';
 const BUMPER_COLOR = '#f1c40f';
 const BALL_COLOR = '#ecf0f1';
 
-// Konfigurace obchodu
 const SHOP_ITEMS = [
-    { id: 'bumper', name: 'Extra Bumper', price: 100, icon: 'O' },
-    { id: 'flipper_s', name: 'Mini Flipper', price: 250, icon: '/' },
-    { id: 'catcher', name: 'Magnet', price: 500, icon: 'U' },
+    { id: 'bumper', name: 'Extra Bumper', price: 100, icon: 'O' }
 ];
 
 export default function Pinball() {
@@ -25,21 +21,26 @@ export default function Pinball() {
     const sceneRef = useRef(null);
     const engineRef = useRef(Engine.create());
     
-    // Reference na objekty
+    const userItemsComposite = useRef(Composite.create()).current;
+
     const leftFlipperRef = useRef(null);
     const rightFlipperRef = useRef(null);
     const plungerRef = useRef(null);
     const ballRef = useRef(null);
 
-    // State
     const [score, setScore] = useState(0);
     const [record, setRecord] = useState(0);
     const [money, setMoney] = useState(0);
+    const [placedItems, setPlacedItems] = useState([]);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
 
+    // --- NOVÉ: Debug log pro zobrazení na obrazovce ---
+    const [debugLog, setDebugLog] = useState([]);
+
     const controller = useRef(
-        createPinballController(setScore, setRecord, setMoney, setIsPlaying, setIsPaused)
+        // Předáváme setDebugLog do controlleru
+        createPinballController(setScore, setRecord, setMoney, setPlacedItems, setIsPlaying, setIsPaused, setDebugLog)
     ).current;
 
     useEffect(() => { controller.init(); }, []);
@@ -48,6 +49,8 @@ export default function Pinball() {
         const engine = engineRef.current;
         const world = engine.world;
         engine.gravity.y = 0.8;
+        engine.positionIterations = 40;
+        engine.velocityIterations = 40;
 
         const render = Render.create({
             element: sceneRef.current,
@@ -55,179 +58,106 @@ export default function Pinball() {
             options: { width: W, height: H, wireframes: false, background: 'transparent' }
         });
 
-        // --- 1. ZDI a OHRANIČENÍ ---
-        
-        // Vytáhneme si šikmé zdi do proměnných, abychom jim mohli nastavit collisionFilter
-        // GROUP: -1 (Levá strana), -2 (Pravá strana). 
-        // Objekty se stejným záporným číslem se NIKDY nesrazí.
-        const leftSlingshot = Bodies.rectangle(200, H - 150, 400, 20, { 
-            isStatic: true, 
-            angle: 0.55, // Trochu strmější úhel
-            render: { fillStyle: '#444' },
-            collisionFilter: { group: -1 } // <--- ZMĚNA: Skupina -1
+        Events.on(render, 'afterRender', () => {
+            const ctx = render.context;
+            ctx.font = 'bold 10px sans-serif';
+            ctx.fillStyle = 'black';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            Composite.allBodies(world).forEach(body => {
+                if (body.isExtra) {
+                    ctx.fillText("EXTRA", body.position.x, body.position.y);
+                }
+            });
         });
 
-        const rightSlingshot = Bodies.rectangle(W - 300, H - 150, 400, 20, { 
-            isStatic: true, 
-            angle: -0.55, 
-            render: { fillStyle: '#444' },
-            collisionFilter: { group: -2 } // <--- ZMĚNA: Skupina -2
-        });
+        Composite.add(world, userItemsComposite);
 
         const walls = [
             Bodies.rectangle(W/2, -WALL_THICKNESS, W, WALL_THICKNESS*2, { isStatic: true, render: { fillStyle: '#333' } }),
             Bodies.rectangle(0, H/2, WALL_THICKNESS, H, { isStatic: true, render: { fillStyle: '#333' } }),
             Bodies.rectangle(W, H/2, WALL_THICKNESS, H, { isStatic: true, render: { fillStyle: '#333' } }),
-            Bodies.rectangle(W - 80, H - 200, 20, 600, { isStatic: true, render: { fillStyle: '#444' } }),
-            Bodies.rectangle(W - 40, 40, 150, 20, { isStatic: true, angle: 0.7, render: { fillStyle: '#444' } }),
-            leftSlingshot, // Přidáme naše upravené slingshoty
-            rightSlingshot
+            Bodies.rectangle(W - 70, H - 200, 20, 600, { isStatic: true, render: { fillStyle: '#444' } }),
+            Bodies.rectangle(W - 40, 40, 150, 20, { isStatic: true, angle: 0.8, render: { fillStyle: '#333' } }),
+            
+            Bodies.rectangle(240, H - 190, 400, 20, { isStatic: true, angle: 0.55, render: { fillStyle: '#444' }, collisionFilter: { group: -1 } }),
+            Bodies.rectangle(W - 240, H - 190, 400, 20, { isStatic: true, angle: -0.55, render: { fillStyle: '#444' }, collisionFilter: { group: -2 } }),
+            Bodies.rectangle(70, H / 2, 20, H, { isStatic: true, render: { fillStyle: '#444' } })
         ];
 
-        // --- 2. BUMPERY ---
-        const bumperOptions = { isStatic: true, label: 'bumper', restitution: 1.5, render: { fillStyle: BUMPER_COLOR } };
-        const bumpers = [
-            Bodies.circle(W / 2, 250, 30, bumperOptions),
-            Bodies.circle(W / 2 - 150, 350, 30, bumperOptions),
-            Bodies.circle(W / 2 + 150, 350, 30, bumperOptions)
+        const bumperOptions = { isStatic: true, label: 'bumper', restitution: 3, render: { fillStyle: BUMPER_COLOR } };
+        const basicBumpers = [
+            Bodies.circle(W / 2, 100, 30, bumperOptions),
+            Bodies.circle(W / 2 - 100, 200, 30, bumperOptions),
+            Bodies.circle(W / 2 + 100, 200, 30, bumperOptions)
         ];
 
-        // --- 3. FLIPPERY (Páčky) ---
-        // Nyní jim nastavíme collisionFilter, aby ignorovaly své sousední zdi
+        const flipperOptions = { render: { fillStyle: FLIPPER_COLOR }, chamfer: { radius: 10 }, density: 100, frictionAir: 0.05 };
+        const leftFlipper = Bodies.rectangle(480, H - 75, 180, 30, { ...flipperOptions, collisionFilter: { group: -1 } });
+        const leftPivot = Constraint.create({ pointA: { x: 420, y: H - 75 }, bodyB: leftFlipper, pointB: { x: -60, y: 0 }, stiffness: 1, length: 0 });
+        const rightFlipper = Bodies.rectangle(W - 480, H - 75, 180, 30, { ...flipperOptions, collisionFilter: { group: -2 } });
+        const rightPivot = Constraint.create({ pointA: { x: W - 420, y: H - 75 }, bodyB: rightFlipper, pointB: { x: 60, y: 0 }, stiffness: 1, length: 0 });
         
-        // Levý flipper
-        const leftFlipper = Bodies.rectangle(380, H - 80, 180, 20, { 
-            render: { fillStyle: FLIPPER_COLOR },
-            chamfer: { radius: 10 },
-            collisionFilter: { group: -1 } // <--- ZMĚNA: Ignoruje leftSlingshot (-1)
-        });
-        const leftPivot = Constraint.create({
-            pointA: { x: 320, y: H - 80 },
-            bodyB: leftFlipper,
-            pointB: { x: -60, y: 0 },
-            stiffness: 1, length: 0
-        });
-
-        // Pravý flipper
-        const rightFlipper = Bodies.rectangle(W - 480, H - 80, 180, 20, { 
-            render: { fillStyle: FLIPPER_COLOR },
-            chamfer: { radius: 10 },
-            collisionFilter: { group: -2 } // <--- ZMĚNA: Ignoruje rightSlingshot (-2)
-        });
-        const rightPivot = Constraint.create({
-            pointA: { x: W - 420, y: H - 80 },
-            bodyB: rightFlipper,
-            pointB: { x: 60, y: 0 },
-            stiffness: 1, length: 0
-        });
-
         leftFlipperRef.current = leftFlipper;
         rightFlipperRef.current = rightFlipper;
 
-        // 4. ODPALOVAČ a RESET
-        const plunger = Bodies.rectangle(W - 40, H - 20, 60, 40, { isStatic: true, render: { fillStyle: '#888' } });
+        const plunger = Bodies.rectangle(W - 40, H - 20, 40, 40, { isStatic: true, render: { fillStyle: '#888' } });
         plungerRef.current = plunger;
         const resetZone = Bodies.rectangle(W/2, H + 50, W, 50, { isStatic: true, isSensor: true, label: 'reset' });
 
-        Composite.add(world, [
-            ...walls, ...bumpers, 
-            leftFlipper, leftPivot, 
-            rightFlipper, rightPivot, 
-            plunger, resetZone
-        ]);
+        Composite.add(world, [...walls, ...basicBumpers, leftFlipper, leftPivot, rightFlipper, rightPivot, plunger, resetZone]);
 
-        // 5. OVLÁDÁNÍ
         const keyState = { a: false, d: false, space: false };
-        const handleKeyDown = (e) => {
+        window.addEventListener('keydown', (e) => {
             if (e.code === 'KeyA') keyState.a = true;
             if (e.code === 'KeyD') keyState.d = true;
             if (e.code === 'Space') keyState.space = true;
-        };
-        const handleKeyUp = (e) => {
+        });
+        window.addEventListener('keyup', (e) => {
             if (e.code === 'KeyA') keyState.a = false;
             if (e.code === 'KeyD') keyState.d = false;
             if (e.code === 'Space') keyState.space = false;
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        window.addEventListener('keyup', handleKeyUp);
+        });
 
-        // --- 6. LOGIKA UPDATE (Oprava padání flipperů) ---
         const onBeforeUpdate = () => {
-            // Konstanty pro limity úhlů (v radiánech)
-            // 0 je vodorovně, záporné je nahoru, kladné dolů
-            const MAX_UP = -0.5;   // Jak moc nahoru může jít
-            const MAX_DOWN = 0.5;  // Jak moc dolů (klidová poloha)
+             const ANGLE_UP_LEFT = -0.55; const ANGLE_DOWN_LEFT = 0.55;
+             const ANGLE_UP_RIGHT = 0.55; const ANGLE_DOWN_RIGHT = -0.55;
+             const SPEED = 0.35; const TOLERANCE = 0.1;
 
-            // Levý Flipper
-            if (keyState.a) {
-                // Jdeme nahoru
-                if (leftFlipper.angle > MAX_UP) {
-                    Body.setAngularVelocity(leftFlipper, -0.45); // Rychlost nahoru
-                } else {
-                    // Tvrdý limit nahoře (zastaví se)
-                    Body.setAngle(leftFlipper, MAX_UP);
-                    Body.setAngularVelocity(leftFlipper, 0);
-                }
-            } else {
-                // Padáme dolů (Gravity + pomoc)
-                if (leftFlipper.angle < MAX_DOWN) {
-                    Body.setAngularVelocity(leftFlipper, 0.15); // Rychlost návratu
-                } else {
-                    // Tvrdý limit dole (ZARÁŽKA)
-                    Body.setAngle(leftFlipper, MAX_DOWN);
-                    Body.setAngularVelocity(leftFlipper, 0);
-                }
-            }
+             const lockFlipper = (body, targetAngle, pivotX, pivotY, pivotOffsetX) => {
+                 Body.setAngularVelocity(body, 0); Body.setVelocity(body, { x: 0, y: 0 });
+                 Body.setAngle(body, targetAngle);
+                 const newX = pivotX + Math.cos(targetAngle) * pivotOffsetX;
+                 const newY = pivotY + Math.sin(targetAngle) * pivotOffsetX;
+                 Body.setPosition(body, { x: newX, y: newY });
+             };
 
-            // Pravý Flipper (zrcadlově obrácené úhly)
-            if (keyState.d) {
-                if (rightFlipper.angle < -MAX_UP) { // 0.5 (nahoru je pro pravý kladné číslo, pokud je otočený... moment, Matter úhly jsou globální)
-                    // Pozor: Pravý flipper má 0 vodorovně.
-                    // Aby šel špičkou nahoru, musí rotovat DOPRAVA (kladná velocity) -> úhel se zvětšuje?
-                    // Ne, počkat. Pravý flipper má pant vlevo (z jeho pohledu).
-                    // Zkusme logiku: Pravý flipper pivot je W-420. Špička směřuje doprava.
-                    // Aby šel nahoru, musí se točit PROTI směru hodinových ručiček (záporné) pokud je špička vlevo od pivotu.
-                    // Ale my máme pivot W-420 a těleso W-480. Těleso je VLEVO od pivotu. Špička směřuje doleva.
-                    // Takže nahoru = po směru hodinových ručiček = KLADNÁ velocity.
-                    
-                    // Zkusíme empiricky podle tvého původního kódu:
-                    // Původně jsi měl: Body.setAngularVelocity(rightFlipper, 0.25); -> Jde nahoru.
-                    // Takže MAX_UP pro pravý bude cca 0.5 a MAX_DOWN bude -0.5
-                    
-                    if (rightFlipper.angle < 0.5) {
-                        Body.setAngularVelocity(rightFlipper, 0.45);
-                    } else {
-                        Body.setAngle(rightFlipper, 0.5);
-                        Body.setAngularVelocity(rightFlipper, 0);
-                    }
-                } else {
-                    // Dolů
-                    if (rightFlipper.angle > -0.5) {
-                        Body.setAngularVelocity(rightFlipper, -0.15);
-                    } else {
-                        Body.setAngle(rightFlipper, -0.5);
-                        Body.setAngularVelocity(rightFlipper, 0);
-                    }
-                }
-            }
+             const targetL = keyState.a ? ANGLE_UP_LEFT : ANGLE_DOWN_LEFT;
+             const diffL = targetL - leftFlipper.angle;
+             if (Math.abs(diffL) < TOLERANCE) lockFlipper(leftFlipper, targetL, 420, H - 80, 60);
+             else Body.setAngularVelocity(leftFlipper, Math.max(Math.min(diffL * SPEED, 0.5), -0.5));
 
-            // Odpalovač
-            if (keyState.space) {
-                if (ballRef.current && ballRef.current.position.x > W - 80 && ballRef.current.position.y > H - 150) {
-                    Body.setVelocity(ballRef.current, { x: 0, y: -35 });
-                }
-            }
+             const targetR = keyState.d ? ANGLE_UP_RIGHT : ANGLE_DOWN_RIGHT;
+             const diffR = targetR - rightFlipper.angle;
+             if (Math.abs(diffR) < TOLERANCE) lockFlipper(rightFlipper, targetR, W - 420, H - 80, -60);
+             else Body.setAngularVelocity(rightFlipper, Math.max(Math.min(diffR * SPEED, 0.5), -0.5));
+
+             if (keyState.space) {
+                 if (ballRef.current && ballRef.current.position.x > W - 80 && ballRef.current.position.y > H - 150) {
+                     Body.setVelocity(ballRef.current, { x: 0, y: -30 });
+                 }
+             }
         };
         Events.on(engine, 'beforeUpdate', onBeforeUpdate);
 
-        // 7. KOLIZE
         const onCollision = (event) => {
             event.pairs.forEach((pair) => {
                 const { bodyA, bodyB } = pair;
                 if (bodyA.label === 'bumper' || bodyB.label === 'bumper') {
-                    setScore(p => p + 10); setMoney(p => p + 10);
+                    controller.handleHit(10); 
                 }
                 if (bodyA.label === 'reset' || bodyB.label === 'reset') {
+                    controller.handleBallLost();
                     respawnBall();
                 }
             });
@@ -236,19 +166,17 @@ export default function Pinball() {
 
         const respawnBall = () => {
             if (ballRef.current) Composite.remove(world, ballRef.current);
-            const ball = Bodies.circle(W - 40, H - 100, 15, { restitution: 0.5, render: { fillStyle: BALL_COLOR }, label: 'ball' });
+            const ball = Bodies.circle(W - 40, H - 100, 15, { restitution: 0.5, render: { fillStyle: BALL_COLOR }, label: 'ball', density: 0.001 });
             ballRef.current = ball;
             Composite.add(world, ball);
         };
 
         respawnBall();
         Render.run(render);
-        const runner = Runner.create();
+        const runner = Runner.create({ isFixed: true, delta: 1000 / 60 });
         Runner.run(runner, engine);
 
         return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-            window.removeEventListener('keyup', handleKeyUp);
             Events.off(engine, 'beforeUpdate', onBeforeUpdate);
             Events.off(engine, 'collisionStart', onCollision);
             Render.stop(render);
@@ -259,9 +187,45 @@ export default function Pinball() {
         };
     }, []);
 
-    // ... (Zbytek komponenty - handleStart, return JSX - zůstává stejný) ...
-    
-    // Pro úplnost, zbytek kódu tlačítek a layoutu:
+    useEffect(() => {
+        Composite.clear(userItemsComposite, false, true);
+        const newBodies = placedItems.map(item => {
+            if (item.type === 'bumper') {
+                return Bodies.circle(item.x, item.y, 30, {
+                    isStatic: true, label: 'bumper', restitution: 3, render: { fillStyle: BUMPER_COLOR }, isExtra: true
+                });
+            }
+            return null;
+        }).filter(b => b !== null);
+        Composite.add(userItemsComposite, newBodies);
+    }, [placedItems]);
+
+    const handleDragStart = (e, source, data) => {
+        if (isPlaying) { e.preventDefault(); return; }
+        e.dataTransfer.setData("source", source);
+        e.dataTransfer.setData("data", JSON.stringify(data));
+    };
+    const handleDragOver = (e) => e.preventDefault();
+    const handleDrop = (e) => {
+        e.preventDefault();
+        if (isPlaying) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const source = e.dataTransfer.getData("source");
+        const data = JSON.parse(e.dataTransfer.getData("data"));
+
+        if (source === "shop") {
+            controller.buyItem(data.id, Math.round(x), Math.round(y), data.price);
+        } else if (source === "board") {
+            controller.moveItem(data.id, Math.round(x), Math.round(y));
+        }
+    };
+    const handleRightClick = (e, itemId) => {
+        e.preventDefault(); if (isPlaying) return;
+        const refund = 100; controller.sellItem(itemId, refund);
+    };
+
     const handleStart = () => { controller.startGame(); };
     const handlePause = () => { controller.togglePause(isPaused); };
     const handleClose = () => { navigate("/"); };
@@ -272,10 +236,11 @@ export default function Pinball() {
             <div className="pinball-container">
                 <div className="pb-left-panel">
                     <div className="pb-money-display">$ {money}</div>
+                    <button onClick={() => controller.cheatMoney()} style={{ background: '#f39c12', border: 'none', padding: '5px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', marginBottom: '10px' }}>+1000g (Cheat)</button>
                     <h3>Obchod</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         {SHOP_ITEMS.map((item) => (
-                            <div key={item.id} className="pb-shop-item">
+                            <div key={item.id} className="pb-shop-item" draggable={money >= item.price} onDragStart={(e) => handleDragStart(e, "shop", item)} style={{ opacity: money >= item.price ? 1 : 0.5, cursor: money >= item.price ? 'grab' : 'not-allowed' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <div style={{ width: '30px', height: '30px', background: '#555', display: 'grid', placeItems: 'center', borderRadius: '50%' }}>{item.icon}</div>
                                     <span>{item.name}</span>
@@ -285,14 +250,26 @@ export default function Pinball() {
                         ))}
                     </div>
                 </div>
+
                 <div className="pb-middle-panel">
-                    <div className="pb-game-wrapper">
+                    <div className="pb-game-wrapper" onDragOver={handleDragOver} onDrop={handleDrop}>
                         <div ref={sceneRef} className="pb-canvas-overlay" />
+                        {!isPlaying && placedItems.map(item => (
+                            <div key={item.id} draggable={true} onDragStart={(e) => handleDragStart(e, "board", item)} onContextMenu={(e) => handleRightClick(e, item.id)} style={{ position: 'absolute', left: item.x - 30, top: item.y - 30, width: 60, height: 60, borderRadius: '50%', cursor: 'grab', border: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'black', fontWeight: 'bold', fontSize: '10px', userSelect: 'none' }} title="Levý klik: Přesun, Pravý klik: Prodat">EXTRA</div>
+                        ))}
+                        
+                        {/* --- DEBUG BOX --- */}
+                        <div style={{ position: 'absolute', bottom: 10, right: 10, background: 'rgba(0,0,0,0.7)', color: '#0f0', padding: '10px', fontSize: '12px', pointerEvents: 'none', borderRadius: '5px', width: '200px' }}>
+                            <strong>DEBUG LOG:</strong>
+                            {debugLog.map((log, i) => <div key={i}>{log}</div>)}
+                        </div>
+
                     </div>
                 </div>
+
                 <div className="pb-right-panel">
                     <div className="pb-info-box"><div className="pb-score-label">Skóre</div><div className="pb-score-value">{score}</div></div>
-                    <div className="pb-info-box"><div className="pb-score-label">Rekord</div><div className="pb-score-value" style={{ color: '#f1c40f' }}>{record}</div></div>
+                    <div className="pb-info-box"><div className="pb-score-label">Rekord</div><div className="pb-score-value" style={{ color: '#f1c40f' }}>{Math.max(score, record)}</div></div>
                     <div style={{ flex: 1 }}></div>
                     <p style={{textAlign: 'center', color: '#666'}}>Ovládání: A / D / Space</p>
                     {!isPlaying ? ( <button className="pb-btn pb-btn-start" onClick={handleStart}>START HRY</button> ) : ( <><button className="pb-btn pb-btn-pause" onClick={handlePause}>{isPaused ? "POKRAČOVAT" : "PAUZA ⏸"}</button><button className="pb-btn pb-btn-stop" onClick={() => controller.gameOver(score, money)}>UKONČIT</button></> )}

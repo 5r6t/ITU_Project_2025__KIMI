@@ -87,7 +87,18 @@ def init_db():
                 user_id INTEGER PRIMARY KEY,
                 score   INTEGER DEFAULT 0,
                 record  INTEGER DEFAULT 0,
-                extension_catcher BOOLEAN DEFAULT 0,
+                money   INTEGER DEFAULT 0,
+                FOREIGN KEY (user_id) REFERENCES User(user_id)
+            );
+        """)
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS PinballItem (
+                item_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                type    TEXT NOT NULL,
+                x       INTEGER NOT NULL,
+                y       INTEGER NOT NULL,
                 FOREIGN KEY (user_id) REFERENCES User(user_id)
             );
         """)
@@ -128,6 +139,7 @@ def destroy():
         "Inventory",
         "Ingredient",
         "Pinball",
+        "PinballItem",
         "User",
         "BrickBreaker",
         "SavedPizza"
@@ -440,27 +452,48 @@ def get_recipe_details(recipe_id):
             "ingredients": ingredients
         }
 
+# --- PINBALL FUNKCE ---
+
 def ensure_pinball_row(user_id):
     with connect() as con:
         cur = con.cursor()
         cur.execute("INSERT OR IGNORE INTO Pinball (user_id) VALUES (?)", (user_id,))
 
 def get_pinball_state(user_id):
+    """Vrátí kompletní stav: skóre, rekord, peníze a seznam předmětů na ploše."""
     with connect() as con:
         cur = con.cursor()
-        cur.execute("SELECT score, record FROM Pinball WHERE user_id=?", (user_id,))
+        # Načtení statistik
+        cur.execute("SELECT score, record, money FROM Pinball WHERE user_id=?", (user_id,))
         row = cur.fetchone()
-        if not row:
-            return {"score": 0, "record": 0}
-        return {"score": row[0], "record": row[1]}
+        stats = {"score": 0, "record": 0, "money": 0}
+        if row:
+            stats = {"score": row[0], "record": row[1], "money": row[2]}
+        
+        # Načtení předmětů
+        cur.execute("SELECT item_id, type, x, y FROM PinballItem WHERE user_id=?", (user_id,))
+        items = []
+        for r in cur.fetchall():
+            items.append({"id": r[0], "type": r[1], "x": r[2], "y": r[3]})
+        
+        return {**stats, "items": items}
+
+def add_pinball_money(user_id, amount):
+    """Přidá peníze (pro cheat nebo výhru)."""
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("UPDATE Pinball SET money = money + ? WHERE user_id=?", (amount, user_id))
+        cur.execute("SELECT money FROM Pinball WHERE user_id=?", (user_id,))
+        return cur.fetchone()[0]
 
 def add_pinball_points(user_id, points):
+    """Přidá skóre a rovnou i peníze (1 bod = 1 peníz)."""
     with connect() as con:
         cur = con.cursor()
-        cur.execute("UPDATE Pinball SET score = score + ? WHERE user_id=?", (points, user_id))
-        cur.execute("SELECT score, record FROM Pinball WHERE user_id=?", (user_id,))
-        score, record = cur.fetchone()
-        return {"score": score, "record": record}
+        cur.execute("UPDATE Pinball SET score = score + ?, money = money + ? WHERE user_id=?", (points, points, user_id))
+        cur.execute("SELECT score, record, money FROM Pinball WHERE user_id=?", (user_id,))
+        row = cur.fetchone()
+        return {"score": row[0], "record": row[1], "money": row[2]}
 
 def pinball_ball_lost(user_id):
     with connect() as con:
@@ -470,36 +503,55 @@ def pinball_ball_lost(user_id):
                SET record = CASE WHEN score > record THEN score ELSE record END,
                    score  = 0
              WHERE user_id=?""", (user_id,))
-        cur.execute("SELECT score, record FROM Pinball WHERE user_id=?", (user_id,))
-        score, record = cur.fetchone()
-        return {"score": score, "record": record}
-    
-def reset_pinball_record(user_id: int):
-    with connect() as con:
-        cur = con.cursor()
-        cur.execute("UPDATE Pinball SET record = 0 WHERE user_id=?", (user_id,))
-        cur.execute("SELECT score, record FROM Pinball WHERE user_id=?", (user_id,))
+        cur.execute("SELECT score, record, money FROM Pinball WHERE user_id=?", (user_id,))
         row = cur.fetchone()
-        return {"score": row[0], "record": row[1]}
-    
-def set_extension_catcher(user_id: int, enabled: bool):
-    with connect() as con:
-        cur = con.cursor()
-        cur.execute(
-            "UPDATE Pinball SET extension_catcher=? WHERE user_id=?",
-            (1 if enabled else 0, user_id),
-        )
-        con.commit()
-        return {"extension_catcher": bool(enabled)}
+        return {"score": row[0], "record": row[1], "money": row[2]}
 
-def get_extension_catcher(user_id: int):
+def buy_pinball_item(user_id, item_type, x, y, price):
+    """Zkontroluje peníze, odečte je a vloží předmět."""
     with connect() as con:
         cur = con.cursor()
-        cur.execute("SELECT extension_catcher FROM Pinball WHERE user_id=?", (user_id,))
+        # 1. Kontrola peněz
+        cur.execute("SELECT money FROM Pinball WHERE user_id=?", (user_id,))
         row = cur.fetchone()
-        if not row:
-            return {"extension_catcher": False}
-        return {"extension_catcher": bool(row[0])}
+        current_money = row[0] if row else 0
+        
+        if current_money < price:
+            return None # Nemá dost peněz
+        
+        # 2. Odečtení peněz
+        cur.execute("UPDATE Pinball SET money = money - ? WHERE user_id=?", (price, user_id))
+        
+        # 3. Vložení předmětu
+        cur.execute("INSERT INTO PinballItem (user_id, type, x, y) VALUES (?, ?, ?, ?)", (user_id, item_type, x, y))
+        new_item_id = cur.lastrowid
+        
+        # 4. Vrácení nového stavu
+        cur.execute("SELECT money FROM Pinball WHERE user_id=?", (user_id,))
+        new_money = cur.fetchone()[0]
+        
+        return {"success": True, "money": new_money, "item": {"id": new_item_id, "type": item_type, "x": x, "y": y}}
+
+def move_pinball_item(user_id, item_id, x, y):
+    """Aktualizuje pozici předmětu."""
+    with connect() as con:
+        con.execute("UPDATE PinballItem SET x=?, y=? WHERE item_id=? AND user_id=?", (x, y, item_id, user_id))
+        return True
+
+def remove_pinball_item(user_id, item_id, refund_price):
+    """Odstraní předmět a vrátí peníze."""
+    with connect() as con:
+        cur = con.cursor()
+        # 1. Smazat
+        cur.execute("DELETE FROM PinballItem WHERE item_id=? AND user_id=?", (item_id, user_id))
+        if cur.rowcount > 0:
+            # 2. Vrátit peníze
+            cur.execute("UPDATE Pinball SET money = money + ? WHERE user_id=?", (refund_price, user_id))
+            cur.execute("SELECT money FROM Pinball WHERE user_id=?", (user_id,))
+            return {"success": True, "money": cur.fetchone()[0]}
+        return {"success": False}
+
+# --- FUNKCE PRO BRICK BREAKER ---
 
 def ensure_breaker_row(user_id):
     with connect() as con:
