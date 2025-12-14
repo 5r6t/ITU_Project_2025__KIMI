@@ -89,7 +89,6 @@ export default function Pinball() {
                     ctx.save();
                     ctx.translate(body.position.x, body.position.y);
                     ctx.rotate(body.angle);
-                    ctx.fillText("EXTRA", 0, 0);
                     ctx.restore();
                 }
             });

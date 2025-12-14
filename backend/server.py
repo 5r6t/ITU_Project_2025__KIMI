@@ -213,11 +213,6 @@ def pinball_ball_lost_endpoint():
     ensure_pinball_row(ADMIN_ID)
     return jsonify(pinball_ball_lost(ADMIN_ID))
 
-@app.route("/api/v1/pinball/reset_record", methods=["POST"])
-def pinball_reset_record():
-    ensure_pinball_row(ADMIN_ID)
-    return jsonify(reset_pinball_record(ADMIN_ID))
-
 @app.route("/api/v1/pinball/cheat_money", methods=["POST"])
 def pinball_cheat_money():
     ensure_pinball_row(ADMIN_ID)
