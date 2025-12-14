@@ -312,7 +312,7 @@ def create_default_achievements(user_id):
         ("Wallball Novice", 1), # ID 9: Dokončení druhého levelu
         ("Wallball Pro", 1),    # ID 10: Dokončení třetího levelu
         ("Wallball Expert", 1), # ID 11: Dokončení čtvrtého levelu
-        ("Wallball Master", 1)  # ID 12: Dokončení pátého levelu
+        ("Wallball Master", 1),  # ID 12: Dokončení pátého levelu
 
         # Brick Breaker achievements
         ("Breaker Rookie", 500),   # Dosáhni 500 skóre
