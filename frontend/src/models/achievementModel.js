@@ -1,3 +1,8 @@
+/*
+Model enabling loading/updating achievements
+Author: Jaroslav Mervart
+*/
+
 import axios from "axios";
 
 const API = axios.create({

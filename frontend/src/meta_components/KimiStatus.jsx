@@ -1,3 +1,7 @@
+/*
+Component for rendering current Kimi Status with images
+Author: Jaroslav Mervart
+*/
 import { useEffect } from "react";
 import { preloadMoodImages } from "../models/kimiMoodModel";
 import "../styles/KimiStatus.css";

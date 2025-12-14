@@ -1,3 +1,7 @@
+/*
+Achievements menu
+Author: Jaroslav Mervart
+*/
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "./meta_components/Header";

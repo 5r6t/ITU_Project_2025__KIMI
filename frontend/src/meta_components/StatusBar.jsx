@@ -1,3 +1,7 @@
+/*
+All purpose status bars (e.g. used in Kimi Mood)
+Author: Veronika Kubova, Jaroslav Mervart
+*/
 import "../styles/StatusBar.css";
 
 export default function StatusBar({ label, value, color }) {

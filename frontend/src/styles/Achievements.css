@@ -1,3 +1,8 @@
+
+/*
+Styles for achievements menu
+Author: Jaroslav Mervart
+*/
 .achieve {
   flex: 1; /* expand to page */
   display: flex;

@@ -1,4 +1,7 @@
-// Scene.jsx
+/*
+Component for rendering scene inside main menu
+Author: Jaroslav Mervart
+*/
 import { sceneObjects, sceneUi } from "../models/sceneModel";
 import SceneCarousel from "./SceneCarousel";
 import { SceneObject } from "./SceneObject";
@@ -13,7 +16,22 @@ export function Scene({ controller, carouselItems = [] }) {
                 <SceneObject
                     key={obj.id}
                     {...obj}
-                    onClick={controller.handleObjectClick}
+                />
+            ))}
+
+            {Object.values(sceneObjects).map(({ id, hotspot }) => (
+                <button
+                    key={`${id}-hotspot`}
+                    className="scene-hotspot"
+                    style={{
+                        left: hotspot?.x ?? 0,
+                        top: hotspot?.y ?? 0,
+                        width: hotspot?.size ?? 100,
+                        height: hotspot?.size ?? 100,
+                    }}
+                    onClick={() => controller.handleObjectClick(id)}
+                    aria-label={`${id} hotspot`}
+                    title={id}
                 />
             ))}
             {carouselItems.length > 0 && (

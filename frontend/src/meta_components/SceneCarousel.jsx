@@ -1,3 +1,7 @@
+/*
+Carousel component (used in scene for games)
+Author: Jaroslav Mervart
+*/
 import { useState } from "react";
 import "../styles/SceneCarousel.css";
 

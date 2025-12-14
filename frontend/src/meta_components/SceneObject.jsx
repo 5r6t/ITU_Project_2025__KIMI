@@ -1,3 +1,7 @@
+/*
+Component for rendering objects in the scene
+Author: Jaroslav Mervart
+*/
 import "../styles/Utils.css";
 
 export function SceneObject({
@@ -12,6 +16,8 @@ export function SceneObject({
 }) {
     if (!enabled) return null;
 
+    const handleClick = onClick ? () => onClick(id) : undefined;
+
     return (
         <img
             className="no_select"
@@ -23,9 +29,10 @@ export function SceneObject({
                 top: y,
                 width: width,
                 height: height,
-                cursor: onClick ? "pointer" : "default",
+                cursor: "default",
+                pointerEvents: "none",
             }}
-            onClick={() => onClick && onClick(id)}
+            onClick={handleClick}
             draggable={false}
         />
     );

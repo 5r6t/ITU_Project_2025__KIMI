@@ -1,3 +1,7 @@
+/*
+Component for rendering achievement complete notification
+Author: Jaroslav Mervart
+*/
 import { useEffect } from "react";
 import "../styles/AchievementInfo.css";
 

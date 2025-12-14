@@ -1,3 +1,8 @@
+/*
+Model for Kimi mood display inside main menu
+Author: Jaroslav Mervart
+*/
+
 import foxHappy from "../assets/scene/fox_happy.svg";
 import foxSleepy from "../assets/scene/fox_sleepy.svg";
 import foxSleepyDirty from "../assets/scene/fox_sleepy_dirty.svg";
@@ -30,7 +35,7 @@ export function preloadMoodImages() {
 function clampValue(v) {
   if (Number.isNaN(v)) return 0;
   if (v === undefined || v === null) return 0;
-  return Math.max(-999, Math.min(999, Number(v)));
+  return Math.max(0, Math.min(100, Number(v)));
 }
 
 // Derive view-friendly mood info from the raw creature stats.

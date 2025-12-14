@@ -1,3 +1,7 @@
+/*
+Settings menu
+Author: Jaroslav Mervart
+*/
 import { useNavigate } from "react-router-dom";
 import Header from "./meta_components/Header";
 

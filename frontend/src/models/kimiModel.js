@@ -1,3 +1,8 @@
+/*
+Model enabling interaction with Kimi
+Author: Jaroslav Mervart
+*/
+
 import axios from "axios";
 
 export const KimiModel = {

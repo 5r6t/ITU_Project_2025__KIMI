@@ -1,5 +1,8 @@
-// src/meta_components/AchievementContext.jsx
-
+/*
+Achievement context/provider builds the achievement controller (setPopup, onUpdate)
+and renders an AchievementInfo popup when a message is requested.
+Author: Jaroslav Mervart
+*/
 import { createContext, useContext, useState, useMemo } from "react";
 import { createAchievementController } from "../controllers/achievementController";
 import AchievementInfo from "./AchievementInfo";

@@ -1,3 +1,7 @@
+/*
+Scene styles for the main menu
+Author: Jaroslav Mervart
+*/
 .carousel-wrapper {
     display: flex;
     flex-direction: row;

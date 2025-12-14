@@ -1,3 +1,8 @@
+/*
+Solitaire game
+Author: Jaroslav Mervart
+*/
+
 import { useNavigate } from "react-router-dom";
 import Header from "./meta_components/Header";
 import './styles/Solitaire.css';

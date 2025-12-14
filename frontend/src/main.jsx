@@ -1,3 +1,7 @@
+/*
+Router for the kimi game
+Author: Jaroslav Mervart, Simon Dufek, Pavel Hyza
+*/
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './styles/index.css'
@@ -15,7 +19,6 @@ import PizzaDecor from './PizzaDecor.jsx'
 import PizzaBaking from './PizzaBaking.jsx'
 import Breaker from './Breaker.jsx'
 
-// 2.11. Přidání routování na komponenty App a Pinball namísto vykreslení pouze App
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AchievementProvider>

@@ -1,3 +1,7 @@
+/*
+Styles for Kimi mood display 
+Author: Jaroslav Mervart
+*/
 .kimi-status {
   display: flex;
   align-items: center;

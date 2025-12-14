@@ -1,3 +1,7 @@
+/*
+Controller defining actions when clicking on rooms
+Author: Jaroslav Mervart
+*/
 export function createSceneController({ navigate, kimiCtrl }) {
     return {
         handleObjectClick: function (id) {

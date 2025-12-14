@@ -1,3 +1,7 @@
+/*
+Controller for managing Kimi
+Author: Jaroslav Mervart
+*/
 import { KimiModel } from "../models/kimiModel";
 import { withMood } from "../models/kimiMoodModel";
 

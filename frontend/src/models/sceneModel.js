@@ -1,4 +1,8 @@
-// models/sceneModel.js
+/*
+Model for scene inside main menu
+Author: Jaroslav Mervart
+*/
+
 import kitchen_icon from "../assets/scene/kitchen.svg";
 import games_icon from "../assets/scene/games.svg"
 import bedroom_icon from "../assets/scene/bedroom.svg"
@@ -8,6 +12,7 @@ import gym_icon from "../assets/scene/gym.svg"
 const room_height = 300;
 const y_offset = 0;
 const x_offset =170;
+const hotspot_size = 140;
 
 export const sceneObjects = {
 
@@ -19,6 +24,11 @@ export const sceneObjects = {
         width: 300,
         height: room_height,
         enabled: true,
+        hotspot: {
+            x: 51 + x_offset + (300 - hotspot_size) / 2,
+            y: 297 + y_offset + (room_height - hotspot_size) / 2,
+            size: hotspot_size,
+        },
     },
     bathroom: {
         id: "bathroom",
@@ -28,6 +38,11 @@ export const sceneObjects = {
         width: 300,
         height: room_height,
         enabled: true,
+        hotspot: {
+            x: 181 + x_offset + (300 - hotspot_size) / 2,
+            y: 499 + (room_height - hotspot_size) / 2,
+            size: hotspot_size,
+        },
     },
     kitchen: {
         id: "kitchen",
@@ -37,6 +52,11 @@ export const sceneObjects = {
         width: 300,
         height: room_height,
         enabled: true,
+        hotspot: {
+            x: 294 + x_offset + (300 - hotspot_size) / 2,
+            y: 305 + (room_height - hotspot_size) / 2,
+            size: hotspot_size,
+        },
     },
     games: {
         id: "games",
@@ -46,6 +66,11 @@ export const sceneObjects = {
         width: 300,
         height: room_height,
         enabled: true,
+        hotspot: {
+            x: 447 + x_offset + (300 - hotspot_size) / 2,
+            y: 508 + (room_height - hotspot_size) / 2,
+            size: hotspot_size,
+        },
     },
     gym: {
         id: "gym",
@@ -55,6 +80,11 @@ export const sceneObjects = {
         width: 300,
         height: room_height,
         enabled: true,
+        hotspot: {
+            x: -90 + x_offset + (300 - hotspot_size) / 2,
+            y: 465 + (room_height - hotspot_size) / 2,
+            size: hotspot_size,
+        },
     },
 };
 

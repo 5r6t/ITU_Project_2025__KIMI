@@ -1,3 +1,7 @@
+/*
+General header component accepting children (e.g. various buttons)
+Author: Jaroslav Mervart
+*/
 import "../styles/Header.css";
 import { Link } from "react-router-dom";
 import close from "../assets/close.svg";

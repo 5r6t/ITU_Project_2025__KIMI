@@ -1,3 +1,8 @@
+/*
+Controller handling display of completed achievement notifications
+and loading achievements
+Author: Jaroslav Mervart
+*/
 import { AchievementModel } from "../models/achievementModel";
 
 export function createAchievementController({ setPopup, onUpdate }) {
