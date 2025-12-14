@@ -103,21 +103,6 @@ export default function App() {
               <div className="kimi-overlay__status">{kimi.moodText}</div>
             </div>
           </div> */}
-
-          <div className="Games">
-            
-            {/* Sekce pro Brick Breaker */}
-            <div style={{ display: "inline-block", marginLeft: 8 }}>
-                {/* Tlačítko pro ovládání bonusů */}
-                <button 
-                    style={{ marginLeft: "5px", fontSize: "0.8rem", padding: "5px 10px" }} 
-                    onClick={toggleBreakerPowerups}
-                    title="Zapnout/Vypnout padající bonusy ve hře"
-                >
-                   Bonusy pre Brick Breaker: <b>{breakerPowerups ? "ZAP" : "VYP"}</b>
-                </button>
-            </div>
-          </div>
         </div>
         
         <div className="stats card">

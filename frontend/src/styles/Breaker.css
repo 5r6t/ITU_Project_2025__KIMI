@@ -1,9 +1,11 @@
+/* --- ZÁKLADNÍ ROZVRŽENÍ (Zachováno z původního souboru) --- */
+
 .breaker-container {
     display: flex;
     flex-direction: column;
     height: 100vh;
     width: 100vw;
-    background-color: #151b22; /* Velmi tmavé pozadí pro lepší kontrast ve fullscreenu */
+    background-color: #151b22; /* Velmi tmavé pozadí */
     color: white;
     overflow: hidden;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -27,7 +29,7 @@
 
 /* Stats panel - kompaktnější */
 .stats-panel {
-    flex-shrink: 0; /* Nesmrskávat */
+    flex-shrink: 0;
     display: flex;
     justify-content: center;
     gap: 15px;
@@ -66,6 +68,10 @@
     font-weight: 800;
 }
 
+.lives-visual {
+    font-size: 1.2rem; /* Aby srdíčka nebyla moc malá */
+}
+
 .game-wrapper {
     flex: 1;
     display: flex;
@@ -76,81 +82,243 @@
     box-sizing: border-box;
     width: 100%;
     height: 100%;
-    overflow: hidden; /* Důležité: skryje přetékání, kdyby náhodou */
+    overflow: hidden;
 }
 
 .game-canvas {
     display: block;
-
     aspect-ratio: 3 / 2;
-
     max-width: 100%;
     max-height: 100%;
-
     height: auto;
     width: auto; 
-
     border: 2px solid #34495e;
     background-color: #1a252f;
     box-shadow: 0 0 50px rgba(0,0,0,0.6);
     border-radius: 4px;
 }
 
+/* --- NOVÉ MODERNÍ MODÁLNÍ OKNO (Dark Mode) --- */
+
 .modal-overlay {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.85);
+    background-color: rgba(15, 20, 25, 0.92); /* Tmavší, moderní overlay */
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 20;
-    backdrop-filter: blur(4px);
+    z-index: 50;
+    backdrop-filter: blur(5px);
 }
 
 .modal-content {
-    background: white;
-    color: #2c3e50;
-    padding: 40px;
+    background-color: #2c3e50; /* Tmavé pozadí ladící s Headerem */
+    padding: 30px;
     border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
     text-align: center;
-    min-width: 350px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    color: #ecf0f1; /* Světlý text */
+    max-width: 500px;
+    width: 90%;
+    border: 1px solid #34495e;
 }
 
 .modal-content h2 {
     margin-top: 0;
-    font-size: 2rem;
     margin-bottom: 20px;
+    font-size: 2rem;
+    color: #3498db; /* Modrý nadpis */
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    border-bottom: 2px solid #34495e;
+    padding-bottom: 10px;
 }
 
+.section-label {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    color: #95a5a6;
+    margin-bottom: 10px;
+    display: block;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-align: left; /* Zarovnání popisků doleva */
+}
+
+/* --- GRID PRO LEVELY --- */
+.level-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+    gap: 10px;
+    margin-bottom: 25px;
+}
+
+.level-btn {
+    background-color: #34495e;
+    color: #7f8c8d;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    padding: 10px 0;
+    font-weight: bold;
+    cursor: not-allowed;
+    transition: all 0.2s ease;
+}
+
+.level-btn.unlocked {
+    background-color: #3e5871;
+    color: #ecf0f1;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.level-btn.unlocked:hover {
+    background-color: #4b6a88;
+    transform: translateY(-2px);
+}
+
+.level-btn.selected {
+    background-color: #3498db;
+    border-color: #5dade2;
+    color: white;
+    box-shadow: 0 0 10px rgba(52, 152, 219, 0.4);
+}
+
+/* --- BOX PRO POWER-UPS --- */
+.powerup-box {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 25px;
+    border: 1px solid #34495e;
+}
+
+.powerup-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: #2ecc71;
+    font-weight: bold;
+    user-select: none;
+}
+
+.powerup-checkbox {
+    width: 20px;
+    height: 20px;
+    accent-color: #2ecc71;
+    cursor: pointer;
+}
+
+.powerup-locked {
+    color: #7f8c8d;
+    font-style: italic;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* --- GRID PRO OBTÍŽNOST --- */
+.difficulty-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.diff-btn {
+    padding: 15px;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.2s, filter 0.2s;
+    text-transform: uppercase;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+.diff-btn:hover {
+    transform: translateY(-3px);
+    filter: brightness(1.1);
+}
+
+.diff-btn:active {
+    transform: translateY(1px);
+}
+
+/* --- TLAČÍTKA AKCÍ (Zpět, Konec, Znovu) --- */
 .modal-actions {
-    margin-top: 30px;
+    margin-top: 20px;
     display: flex;
     gap: 15px;
     justify-content: center;
 }
 
-.modal-actions button {
-    padding: 12px 24px;
-    cursor: pointer;
-    font-size: 18px;
-    font-weight: bold;
-    background: #e74c3c;
-    color: white;
+.action-btn {
+    padding: 12px 25px;
     border: none;
     border-radius: 6px;
-    transition: transform 0.1s, background 0.2s;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    min-width: 100px;
 }
 
-.modal-actions button:hover {
-    background: #c0392b;
-    transform: scale(1.05);
+.action-btn:hover {
+    transform: translateY(-2px);
 }
 
-.modal-actions button.secondary {
-    background: #95a5a6;
+.btn-primary {
+    background-color: #27ae60;
+    color: white;
+}
+.btn-primary:hover { 
+    background-color: #2ecc71; 
 }
 
-.modal-actions button.secondary:hover {
-    background: #7f8c8d;
+.btn-secondary {
+    background-color: transparent;
+    border: 2px solid #7f8c8d;
+    color: #95a5a6;
+}
+.btn-secondary:hover { 
+    border-color: #bdc3c7; 
+    color: white; 
+    background-color: rgba(255,255,255,0.05);
+}
+
+/* Statistiky na konci hry */
+.final-stats {
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+}
+
+.final-stats p {
+    margin: 10px 0;
+    font-size: 1.1rem;
+    color: #bdc3c7;
+}
+
+.final-stats strong {
+    color: white;
+    font-size: 1.3rem;
+}
+
+.new-record {
+    color: #f1c40f;
+    font-weight: bold;
+    font-size: 1.2rem;
+    margin-top: 15px;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
 }

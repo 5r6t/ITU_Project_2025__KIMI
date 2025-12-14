@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from './meta_components/Header';
 import { createBreakerController } from './controllers/breakerController';
 import { GAME_WIDTH, GAME_HEIGHT, DIFFICULTIES } from './models/breakerModel';
-import { LEVELS } from './breaker_levels'; // Import pro zjištění počtu levelů
+import { LEVELS } from './breaker_levels'; 
 import './styles/Breaker.css';
 
 export default function Breaker() {
@@ -15,7 +15,6 @@ export default function Breaker() {
     const [gameState, setGameState] = useState(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
     
-    // Stav pro menu: Který level uživatel vybral (defaultně první)
     const [selectedLevelIndex, setSelectedLevelIndex] = useState(0);
 
     if (!controllerRef.current) {
@@ -58,24 +57,16 @@ export default function Breaker() {
         ctx.fillStyle = "#1a252f";
         ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-        // --- VYKRESLENÍ HRY ---
-        // Cihly
+        // VYKRESLENÍ (Cihly, PowerUps, Pálka, Míčky)
         if (gameState.bricks) {
             gameState.bricks.forEach(brick => {
                 if (brick.status === 1) {
                     ctx.beginPath();
                     ctx.rect(brick.x, brick.y, brick.width, brick.height);
                     
-                    if (brick.health === 1) {
-                        ctx.fillStyle = "#3498db";
-                        ctx.strokeStyle = "#2980b9";
-                    } else if (brick.health === 2) {
-                        ctx.fillStyle = "#e67e22";
-                        ctx.strokeStyle = "#d35400";
-                    } else if (brick.health >= 3) {
-                        ctx.fillStyle = "#e74c3c";
-                        ctx.strokeStyle = "#c0392b";
-                    }
+                    if (brick.health === 1) { ctx.fillStyle = "#3498db"; ctx.strokeStyle = "#2980b9"; } 
+                    else if (brick.health === 2) { ctx.fillStyle = "#e67e22"; ctx.strokeStyle = "#d35400"; } 
+                    else if (brick.health >= 3) { ctx.fillStyle = "#e74c3c"; ctx.strokeStyle = "#c0392b"; }
 
                     ctx.fill();
                     ctx.lineWidth = 2;
@@ -84,8 +75,6 @@ export default function Breaker() {
                 }
             });
         }
-
-        // Power-ups a zbytek (stejné jako předtím)
         if (gameState.powerUps) {
             gameState.powerUps.forEach(p => {
                 ctx.beginPath();
@@ -99,7 +88,6 @@ export default function Breaker() {
                 ctx.closePath();
             });
         }
-
         if (gameState.paddleWidth) {
             ctx.beginPath();
             ctx.fillStyle = "rgba(0,0,0,0.3)";
@@ -108,7 +96,6 @@ export default function Breaker() {
             ctx.fillRect(gameState.paddleX, GAME_HEIGHT - gameState.paddleHeight, gameState.paddleWidth, gameState.paddleHeight);
             ctx.closePath();
         }
-
         if (gameState.balls) {
             gameState.balls.forEach(ball => {
                 ctx.beginPath();
@@ -117,7 +104,6 @@ export default function Breaker() {
                 ctx.fill();
                 ctx.closePath();
             });
-
             if (gameState.gameStarted && !gameState.balls.some(b => b.moving) && !gameState.gameOver && !gameState.gameWon) {
                 ctx.font = "bold 50px Arial";
                 ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
@@ -127,10 +113,11 @@ export default function Breaker() {
                 ctx.fillText("Stiskni MEZERNÍK", GAME_WIDTH / 2, GAME_HEIGHT / 2 + 50);
             }
         }
-
     }, [gameState]);
 
     if (!gameState) return <div className="loading">Načítání...</div>;
+
+    const canUsePowerUps = (gameState.maxUnlockedWorld || 0) >= 3;
 
     return (
         <div className="breaker-container" ref={containerRef}>
@@ -145,7 +132,6 @@ export default function Breaker() {
             <div className="stats-panel">
                 <div className="stat-box">
                     <span className="stat-label">LEVEL</span>
-                    {/* Zobrazujeme Svět-Podlevel (např. 1-1) */}
                     <span className="stat-value">{gameState.worldIndex + 1}-{gameState.subLevelIndex + 1}</span>
                 </div>
                 <div className="stat-box">
@@ -167,96 +153,92 @@ export default function Breaker() {
             </div>
 
             <div className="game-wrapper">
-                <canvas 
-                    ref={canvasRef} 
-                    width={GAME_WIDTH} 
-                    height={GAME_HEIGHT}
-                    className="game-canvas"
-                />
+                <canvas ref={canvasRef} width={GAME_WIDTH} height={GAME_HEIGHT} className="game-canvas"/>
 
-                {/* --- MENU VÝBĚRU OBTÍŽNOSTI A LEVELU --- */}
+                {/* --- MODERNÍ MODÁLNÍ MENU --- */}
                 {!gameState.gameStarted && !gameState.gameOver && !gameState.gameWon && (
                     <div className="modal-overlay">
                         <div className="modal-content">
                             <h2>Nová Hra</h2>
                             
                             {/* VÝBĚR LEVELU */}
-                            <div className="level-select-container" style={{marginBottom: "20px"}}>
-                                <p style={{fontWeight: "bold", marginBottom: "10px"}}>Vyber Level:</p>
-                                <div style={{display: "flex", justifyContent: "center", gap: "10px"}}>
-                                    {LEVELS.map((_, index) => {
-                                        const isUnlocked = index <= (gameState.maxUnlockedWorld || 0);
-                                        return (
-                                            <button 
-                                                key={index}
-                                                onClick={() => isUnlocked && setSelectedLevelIndex(index)}
-                                                className={selectedLevelIndex === index ? "level-btn selected" : "level-btn"}
-                                                style={{
-                                                    padding: "10px 15px",
-                                                    backgroundColor: selectedLevelIndex === index ? "#3498db" : (isUnlocked ? "#95a5a6" : "#34495e"),
-                                                    color: isUnlocked ? "white" : "#7f8c8d",
-                                                    border: selectedLevelIndex === index ? "2px solid #2980b9" : "none",
-                                                    borderRadius: "4px",
-                                                    cursor: isUnlocked ? "pointer" : "not-allowed",
-                                                    fontWeight: "bold"
-                                                }}
-                                                disabled={!isUnlocked}
-                                            >
-                                                {isUnlocked ? `Level ${index + 1}` : `Level ${index + 1} 🔒`}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                            <span className="section-label">Vyber Level</span>
+                            <div className="level-grid">
+                                {LEVELS.map((_, index) => {
+                                    const isUnlocked = index <= (gameState.maxUnlockedWorld || 0);
+                                    let btnClass = "level-btn";
+                                    if (isUnlocked) btnClass += " unlocked";
+                                    if (selectedLevelIndex === index) btnClass += " selected";
+
+                                    return (
+                                        <button 
+                                            key={index}
+                                            onClick={() => isUnlocked && setSelectedLevelIndex(index)}
+                                            className={btnClass}
+                                            disabled={!isUnlocked}
+                                            title={!isUnlocked ? "Level zamčen" : ""}
+                                        >
+                                            {isUnlocked ? index + 1 : "🔒"}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* NASTAVENÍ POWER-UPŮ */}
+                            <div className="powerup-box">
+                                {canUsePowerUps ? (
+                                    <label className="powerup-label">
+                                        <input 
+                                            type="checkbox" 
+                                            className="powerup-checkbox"
+                                            checked={gameState.powerUpsEnabled} 
+                                            onChange={() => ctrl.togglePowerups()}
+                                        />
+                                        ⚡ Povolit Power-upy
+                                    </label>
+                                ) : (
+                                    <p className="powerup-locked">
+                                        ⚡ Power-upy se odemknou po 3. světě
+                                    </p>
+                                )}
                             </div>
 
                             {/* VÝBĚR OBTÍŽNOSTI */}
-                            <p style={{fontWeight: "bold", marginBottom: "10px"}}>Vyber Obtížnost:</p>
-                            <div className="difficulty-buttons">
+                            <span className="section-label">Startovní obtížnost</span>
+                            <div className="difficulty-grid">
                                 {Object.entries(DIFFICULTIES).map(([key, diff]) => (
                                     <button 
                                         key={key}
-                                        // Zde voláme startGame s vybraným levelem
                                         onClick={() => ctrl.startGame(key, selectedLevelIndex)}
-                                        style={{ 
-                                            backgroundColor: diff.color, 
-                                            margin: "10px", 
-                                            padding: "15px 20px", 
-                                            fontSize: "1.2rem",
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            alignItems: "center",
-                                            minWidth: "120px",
-                                            cursor: "pointer",
-                                            border: "none",
-                                            borderRadius: "8px",
-                                            color: "white"
-                                        }}
+                                        className="diff-btn"
+                                        style={{ backgroundColor: diff.color }}
                                     >
-                                        <span style={{ fontWeight: "bold" }}>{diff.label}</span>
+                                        {diff.label}
                                     </button>
                                 ))}
                             </div>
-                            <button onClick={() => navigate('/')} className="secondary" style={{marginTop: 20}}>Zpět</button>
+
+                            <button onClick={() => navigate('/')} className="action-btn btn-secondary">Zpět</button>
                         </div>
                     </div>
                 )}
 
-                {/* --- KONEC HRY / VÍTĚZSTVÍ --- */}
+                {/* --- END SCREEN --- */}
                 {(gameState.gameOver || gameState.gameWon) && (
                     <div className="modal-overlay">
                         <div className="modal-content">
                             <h2>{gameState.gameWon ? "🎉 Vítězství! 🎉" : "Konec hry"}</h2>
                             <div className="final-stats">
-                                <p>Dokončeno: <strong>Level {gameState.worldIndex + 1}-{gameState.subLevelIndex + 1}</strong></p>
+                                <p>Level: <strong>{gameState.worldIndex + 1}-{gameState.subLevelIndex + 1}</strong></p>
                                 <p>Skóre: <strong>{gameState.score}</strong></p>
                                 <p>High Score: <strong>{gameState.highScore}</strong></p>
                             </div>
                             {gameState.score >= gameState.highScore && gameState.score > 0 && (
                                 <p className="new-record">🏆 NOVÝ REKORD! 🏆</p>
                             )}
-                            <div className="modal-actions">
-                                <button onClick={() => ctrl.restart()}>Zkusit znovu</button>
-                                <button onClick={() => navigate('/')} className="secondary">Odejít</button>
+                            <div className="modal-actions" style={{marginTop: "20px"}}>
+                                <button onClick={() => ctrl.restart()} className="action-btn btn-primary">Zkusit znovu</button>
+                                <button onClick={() => navigate('/')} className="action-btn btn-secondary">Odejít</button>
                             </div>
                         </div>
                     </div>
