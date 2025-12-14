@@ -1,4 +1,8 @@
-/* Celkový kontejner */
+/*
+Zdrojový kód CSS stylů hry Pinball.
+Author: Pavel Hýža
+*/
+/* --- Hlavní kontejner pro celé rozložení aplikace (Flexbox) --- */
 .pinball-container {
   display: flex;
   flex-direction: row;
@@ -6,32 +10,33 @@
   height: 100vh;
   background-color: #111;
   color: white;
-  overflow: hidden;
+  overflow: hidden; /* Zamezení scrollování celé stránky */
 }
 
-/* --- PROSTŘEDNÍ PANEL: HERNÍ PLOCHA (Nyní hlavní levá část) --- */
+/* --- Prostřední panel: Hlavní herní plocha --- */
 .pb-middle-panel {
-  flex: 1; /* Zabere veškerý volný prostor */
+  flex: 1; /* Zabere veškerý volný prostor, který nesežere pravý panel */
   display: flex;
   justify-content: center;
   align-items: center;
   background-color: #0b0b0b;
   position: relative;
-  border-right: 2px solid #444; /* Oddělovač od pravého panelu */
+  border-right: 2px solid #444; /* Vizuální oddělovač */
 }
 
+/* Wrapper pro samotný stůl (Canvas) */
 .pb-game-wrapper {
-  width: 1200px;  /* Šířka stolu */
-  height: 800px; /* Výška stolu */
+  width: 1200px;  /* Fixní šířka stolu */
+  height: 800px; /* Fixní výška stolu */
   position: relative;
-  box-shadow: 0 0 30px rgba(0,0,0,0.8);
+  box-shadow: 0 0 30px rgba(0,0,0,0.8); /* Efekt záře pod stolem */
   border: 5px solid #333;
-  border-radius: 20px 20px 0 0;
+  border-radius: 20px 20px 0 0; /* Zaoblení pouze horních rohů */
   background-color: #151515;
   overflow: hidden;
 }
 
-/* Canvas overlay (Matter.js) */
+/* Overlay pro Canvas (Matter.js vykreslování) */
 .pb-canvas-overlay {
   position: absolute;
   top: 0;
@@ -40,18 +45,18 @@
   height: 100%;
 }
 
-/* --- PRAVÝ PANEL: STATISTIKY A OBCHOD --- */
+/* --- Pravý panel: Statistiky, Obchod a Ovládání --- */
 .pb-right-panel {
-  width: 300px; /* Trochu širší pro obchod */
+  width: 300px; /* Pevná šířka postranního panelu */
   background-color: #222;
   padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  overflow-y: auto; /* Aby se dalo scrollovat, kdyby bylo hodně itemů */
+  gap: 15px; /* Mezery mezi prvky */
+  overflow-y: auto; /* Povolit scrollování, pokud je seznam itemů dlouhý */
 }
 
-/* Statistiky */
+/* --- Styly pro informační boxy (Skóre, Rekord) --- */
 .pb-info-box {
   background: #1a1a1a;
   padding: 15px;
@@ -60,30 +65,42 @@
   text-align: center;
 }
 
-.pb-score-label { color: #aaa; font-size: 14px; text-transform: uppercase; }
-.pb-score-value { color: #fff; font-size: 28px; font-weight: bold; font-family: monospace; }
+.pb-score-label { 
+  color: #aaa; 
+  font-size: 14px; 
+  text-transform: uppercase; 
+}
 
-/* Sekce Obchodu v pravém panelu */
+.pb-score-value { 
+  color: #fff; 
+  font-size: 28px; 
+  font-weight: bold; 
+  font-family: monospace; /* Monospaced font pro čísla */
+}
+
+/* --- Sekce Obchodu --- */
 .pb-shop-section {
   margin-top: 20px;
   border-top: 1px solid #444;
   padding-top: 20px;
 }
 
+/* Zobrazení aktuálního stavu peněz */
 .pb-money-display {
   font-size: 22px;
-  color: #f1c40f;
+  color: #f1c40f; /* Zlatá barva */
   font-weight: bold;
   text-align: center;
   margin-bottom: 15px;
 }
 
+/* --- Položka v obchodě (Draggable Item) --- */
 .pb-shop-item {
   background: #333;
   padding: 10px;
   border: 1px solid #555;
   border-radius: 8px;
-  cursor: grab;
+  cursor: grab; /* Indikátor, že je položka přetažitelná */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -91,11 +108,13 @@
   margin-bottom: 10px;
 }
 
+/* Hover efekt pro položky v obchodě */
 .pb-shop-item:hover {
   background-color: #444;
   border-color: #f1c40f;
 }
 
+/* Cena položky */
 .pb-item-price {
   background-color: #111;
   color: #f1c40f;

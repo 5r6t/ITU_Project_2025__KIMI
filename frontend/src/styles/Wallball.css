@@ -1,4 +1,9 @@
-/* Celkový kontejner pro hru - Flexbox pro 3 sloupce */
+/*
+Zdrojový kód CSS stylů hry Wallball.
+Author: Pavel Hýža
+*/
+/* --- Hlavní kontejner celé minihry --- */
+/* Používá Flexbox pro rozložení na tři sloupce (Inventory, Hra, Ovládání) */
 .wallball-container {
   display: flex;
   flex-direction: row;
@@ -6,42 +11,43 @@
   height: 100vh;
   background-color: #222;
   color: white;
-  overflow: hidden; /* Aby nám nikde nic nepřetékalo */
+  overflow: hidden; /* Zamezení přetékání obsahu mimo obrazovku */
 }
 
-/* --- LEVÝ PANEL: INVENTORY --- */
+/* --- LEVÝ PANEL: INVENTÁŘ --- */
 .wb-left-panel {
   width: 250px;
   background-color: #333;
-  border-right: 2px solid #555;
+  border-right: 2px solid #555; /* Oddělovač od herní plochy */
   padding: 20px;
-  overflow-y: auto;
+  overflow-y: auto; /* Povolit scrollování při hodně dílcích */
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-/* --- INVENTORY ITEMS --- */
+/* --- Položka v inventáři (Draggable Item) --- */
 .wb-inventory-item {
   display: flex;
-  align-items: center;       /* Zarovnat na střed svisle */
-  justify-content: space-between; /* Ikonka vlevo, číslo vpravo */
+  align-items: center;       /* Svislé zarovnání na střed */
+  justify-content: space-between; /* Ikonka vlevo, počet vpravo */
   background: #444;
   margin-bottom: 10px;
   padding: 10px 15px;
   border: 1px solid #666;
   border-radius: 8px;
-  cursor: grab;
+  cursor: grab; /* Indikátor možnosti tažení */
   transition: all 0.2s;
-  user-select: none; /* Aby se neoznačoval text při dragování */
+  user-select: none; /* Zamezení označování textu při dragování */
 }
 
+/* Hover efekt na položku */
 .wb-inventory-item:hover {
   background-color: #555;
   border-color: #777;
 }
 
-/* Styl pro samotnou ikonku */
+/* Kontejner pro SVG ikonku dílku */
 .wb-piece-icon {
   width: 40px;
   height: 40px;
@@ -50,7 +56,7 @@
   align-items: center;
 }
 
-/* Styl pro číslo (počet) */
+/* Styl pro číselný indikátor počtu kusů */
 .wb-piece-count {
   font-family: 'Courier New', monospace;
   font-size: 18px;
@@ -65,24 +71,24 @@
 
 /* --- PROSTŘEDNÍ PANEL: HERNÍ PLOCHA --- */
 .wb-middle-panel {
-  flex: 1;
+  flex: 1; /* Zabere veškerý zbývající prostor */
   display: flex;
-  justify-content: center; /* Vycentrování hrací plochy */
-  align-items: center;
+  justify-content: center; /* Horizontální vycentrování hry */
+  align-items: center;     /* Vertikální vycentrování hry */
   background-color: #1a1a1a;
   position: relative;
 }
 
-/* Kontejner pro hru - drží Grid i Canvas na sobě */
+/* Wrapper držící Grid (pozadí) a Canvas (fyziku) na sobě */
 .wb-game-wrapper {
-  width: 600px;
-  height: 720px;
+  width: 600px;  /* Pevná šířka herního pole (5 sloupců * 120px) */
+  height: 720px; /* Pevná výška herního pole (6 řádků * 120px) */
   position: relative;
-  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  box-shadow: 0 0 20px rgba(0,0,0,0.5); /* Stín pod herním polem */
   border: 4px solid #555;
 }
 
-/* Vizuální Grid (Šachovnice) - HTML podklad */
+/* Vizuální mřížka (Šachovnice) - HTML podklad */
 .wb-grid-background {
   width: 100%;
   height: 100%;
@@ -92,27 +98,29 @@
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 1; /* Nejnižší vrstva */
+  z-index: 1; /* Nejnižší vrstva (pod canvasem) */
 }
 
+/* Jednotlivá buňka mřížky */
 .wb-grid-cell {
   width: 120px;
   height: 120px;
 }
 
+/* Barvy pro šachovnicový vzor */
 .wb-cell-light { background-color: #666666; }
 .wb-cell-dark  { background-color: #444444; }
 
-/* Canvas (Matter.js) - musí být průhledný a nahoře */
+/* Canvas overlay (Matter.js) - Fyzikální vrstva */
 .wb-canvas-overlay {
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 2; /* Nad gridem */
-  pointer-events: none; /* Aby šlo klikat skrz canvas (budeme řešit později) */
+  z-index: 2; /* Musí být nad gridem */
+  pointer-events: none; /* Propouští kliknutí skrz (interakci řešíme jinak) */
 }
 
-/* --- PRAVÝ PANEL: OVLÁDÁNÍ --- */
+/* --- PRAVÝ PANEL: OVLÁDÁNÍ A INFO --- */
 .wb-right-panel {
   width: 250px;
   background-color: #333;
@@ -123,6 +131,7 @@
   gap: 20px;
 }
 
+/* Informační box (Level, Obtížnost, Popis) */
 .wb-info-box {
   background: #222;
   padding: 15px;
@@ -130,6 +139,7 @@
   border: 1px solid #555;
 }
 
+/* Obecný styl tlačítek */
 .wb-btn {
   padding: 12px;
   font-size: 16px;
@@ -140,6 +150,7 @@
   transition: background 0.2s;
 }
 
+/* Specifické barvy tlačítek */
 .wb-btn-start { background-color: #27ae60; color: white; }
 .wb-btn-start:hover { background-color: #2ecc71; }
 
@@ -149,21 +160,19 @@
 .wb-btn-levels { background-color: #2980b9; color: white; }
 .wb-btn-levels:hover { background-color: #3498db; }
 
-
-
-/* --- LEVEL MENU OVERLAY --- */
+/* --- LEVEL MENU OVERLAY (Modální okno) --- */
 .wb-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.85); /* Tmavé pozadí */
+  background-color: rgba(0, 0, 0, 0.85); /* Tmavé poloprůhledné pozadí */
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000; /* Musí být úplně nahoře */
-  backdrop-filter: blur(5px); /* Rozmazání pozadí pro hezký efekt */
+  z-index: 1000; /* Nejvyšší vrstva nad vším */
+  backdrop-filter: blur(5px); /* Efekt rozmazání pozadí */
 }
 
 .wb-modal-content {
@@ -181,10 +190,11 @@
   color: white;
   margin-top: 0;
   margin-bottom: 20px;
-  text-transform: uppercase; /* Volitelné: vypadá to víc jako nadpis hry */
+  text-transform: uppercase;
   letter-spacing: 1px;
 }
 
+/* Grid pro tlačítka levelů v menu */
 .wb-level-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
@@ -192,6 +202,7 @@
   margin: 20px 0;
 }
 
+/* Tlačítko pro výběr konkrétního levelu */
 .wb-level-btn {
   width: 60px;
   height: 60px;
@@ -211,7 +222,7 @@
   transform: scale(1.1);
 }
 
-/* Aktuálně vybraný level */
+/* Aktivní level (právě vybraný) */
 .wb-level-btn.active {
   background-color: #27ae60;
   border-color: #2ecc71;
@@ -225,6 +236,7 @@
   border-color: #333;
 }
 
+/* Tlačítko zavřít v modálním okně */
 .wb-close-btn {
   margin-top: 20px;
   padding: 10px 30px;
