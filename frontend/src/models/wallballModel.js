@@ -1,10 +1,16 @@
+/*
+Zdrojový kód modelu hry Wallball.
+Author: Pavel Hýža
+*/
 import axios from "axios";
 
+// Vytvoření instance Axiosu s nastavenou základní URL pro API
 const API = axios.create({
     baseURL: "http://127.0.0.1:5000/api/v1",
 });
 
 export const WallballModel = {
+    // Načte postup hráče (maximální odemčený level)
     async getProgress() {
         try {
             const res = await API.get("/wallball/progress");
@@ -15,6 +21,7 @@ export const WallballModel = {
         }
     },
 
+    // Oznámí serveru dokončení levelu (odemkne další level)
     async completeLevel(levelId) {
         try {
             const res = await API.post("/wallball/complete_level", { level_id: levelId });
@@ -24,9 +31,7 @@ export const WallballModel = {
         }
     },
 
-    // --- NOVÉ METODY ---
-
-    // Načte rozmístění dílků pro daný level
+    // Načte uložené rozmístění dílků pro konkrétní level
     async getLevelState(levelId) {
         try {
             const res = await API.get(`/wallball/level_state/${levelId}`);
@@ -37,17 +42,17 @@ export const WallballModel = {
         }
     },
 
-    // Uloží dílek
+    // Uloží nově umístěný dílek na server
     async placePiece(levelId, type, col, row) {
         await API.post("/wallball/place_piece", { level_id: levelId, type, col, row });
     },
 
-    // Odstraní dílek
+    // Odstraní konkrétní dílek ze serveru
     async removePiece(levelId, col, row) {
         await API.post("/wallball/remove_piece", { level_id: levelId, col, row });
     },
 
-    // Vymaže všechny dílky (při kompletním resetu)
+    // Smaže všechny dílky v daném levelu (při resetu)
     async resetLevelState(levelId) {
         await API.post("/wallball/reset_level", { level_id: levelId });
     }

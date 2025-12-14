@@ -1,17 +1,17 @@
-// Tady definujeme VZHLED a PRAVIDLA levelů
+/*
+Zdrojový kód pro definici úrovní hry Wallball Puzzle.
+Author: Pavel Hýža
+*/
 export const LEVELS = [
     {
         id: 1,
         difficulty: "Lehká",
         description: "Dostaň míček dolů.",
-        // Grid souřadnice (0-4 pro sloupce, 0-5 pro řádky)
         start: { col: 2, row: 0 }, 
         goal:  { col: 2, row: 5 },
-        // Pevné překážky (šedé zdi), se kterými hráč nehýbe
         walls: [
             { col: 2, row: 3 }
         ],
-        // Co má hráč k dispozici v inventory pro tento level
         inventory: [
             { type: "square", count: 3 },
             { type: "triangle_left", count: 2 },

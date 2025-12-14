@@ -1,25 +1,37 @@
+/*
+Zdrojový kód controlleru hry Wallball.
+Author: Pavel Hýža
+*/
 import { WallballModel } from "../models/wallballModel";
 import { LEVELS } from "../wallball_levels";
 
-// Přidali jsme setPlacedPieces, abychom mohli aktualizovat UI po načtení z DB
-export function createWallballController(setLevel, setMaxUnlockedLevel, setDifficulty, setDescription, setPlacedPieces) {
+// Konstanty pro ID achievementů (musí odpovídat databázi)
+const ACH_ID_LEVEL_1 = 8;
+const ACH_ID_LEVEL_2 = 9;
+const ACH_ID_LEVEL_3 = 10;
+const ACH_ID_LEVEL_4 = 11;
+const ACH_ID_LEVEL_5 = 12;
+
+// Controller pro logiku Wallballu, správu stavu levelů a achievementů
+export function createWallballController(setLevel, setMaxUnlockedLevel, setDifficulty, setDescription, setPlacedPieces, completeAchievement) {
     
-    // Helper pro převod DB dat na formát pro Wallball.jsx (musíme přidat fake bodyId, aby to React vykreslil, než to Matter.js převezme)
+    // Pomocná funkce pro přidání dočasných ID k načteným dílkům z DB (pro React klíče)
     const processLoadedPieces = (pieces) => {
         return pieces.map((p, index) => ({
             ...p,
-            bodyId: `temp-${index}` // Dočasné ID, Wallball.jsx si vytvoří fyzické těleso a ID přepíše
+            bodyId: `temp-${index}`
         }));
     };
 
     return {
+        // Inicializace: Zjistí maximální odemčený level a připraví hru
         init: async () => {
             try {
                 const data = await WallballModel.getProgress();
                 const maxUnlocked = data.max_unlocked_level || 1;
                 setMaxUnlockedLevel(maxUnlocked);
                 
-                // Určení levelu (stejná logika jako minule)
+                // Určení, který level se má načíst (poslední odemčený nebo 1)
                 let levelToLoad = maxUnlocked;
                 const levelExists = LEVELS.find(l => l.id === maxUnlocked);
                 if (!levelExists && LEVELS.length > 0) {
@@ -35,6 +47,7 @@ export function createWallballController(setLevel, setMaxUnlockedLevel, setDiffi
             }
         },
 
+        // Načtení konkrétního levelu (konfigurace + uložené dílky)
         loadLevel: async (levelId) => {
             const levelConfig = LEVELS.find(l => l.id === levelId);
 
@@ -45,9 +58,8 @@ export function createWallballController(setLevel, setMaxUnlockedLevel, setDiffi
                     setDescription(levelConfig.description);
                 }
 
-                // --- NOVÉ: Načtení uložených dílků z DB ---
+                // Načtení pozic dílků z databáze a aktualizace state
                 const savedPieces = await WallballModel.getLevelState(levelId);
-                // Nastavíme do React state
                 if (setPlacedPieces) {
                     setPlacedPieces(processLoadedPieces(savedPieces));
                 }
@@ -57,29 +69,42 @@ export function createWallballController(setLevel, setMaxUnlockedLevel, setDiffi
             return null;
         },
 
-        // Voláno při Dropu
+        // Uložení nově položeného dílku na server
         placePiece: async (levelId, type, col, row) => {
             await WallballModel.placePiece(levelId, type, col, row);
         },
 
-        // Voláno při pravém kliku
+        // Odstranění dílku ze serveru
         removePiece: async (levelId, col, row) => {
             await WallballModel.removePiece(levelId, col, row);
         },
 
-        // Voláno při resetu
+        // Smazání všech dílků v daném levelu (reset)
         resetLevel: async (levelId) => {
             await WallballModel.resetLevelState(levelId);
         },
 
+        // Logika při dokončení levelu (výhra)
         levelCompleted: async (levelId) => {
             const result = await WallballModel.completeLevel(levelId);
+            
             if (result.success) {
-                // Po dokončení levelu ho můžeme vyčistit (volitelné), 
-                // nebo nechat tak, jak je. Zde ho vyčistíme pro příště.
+                // Po výhře vyčistíme plochu v DB pro příští hraní
                 await WallballModel.resetLevelState(levelId);
-                
                 setMaxUnlockedLevel(prev => Math.max(prev, result.max_unlocked_level));
+
+                // Kontrola a splnění achievementů podle dokončeného levelu
+                if (completeAchievement) {
+                    switch (levelId) {
+                        case 1: completeAchievement(ACH_ID_LEVEL_1, 1); break;
+                        case 2: completeAchievement(ACH_ID_LEVEL_2, 1); break;
+                        case 3: completeAchievement(ACH_ID_LEVEL_3, 1); break;
+                        case 4: completeAchievement(ACH_ID_LEVEL_4, 1); break;
+                        case 5: completeAchievement(ACH_ID_LEVEL_5, 1); break;
+                        default: break;
+                    }
+                }
+
                 return true;
             }
             return false;
