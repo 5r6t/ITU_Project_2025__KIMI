@@ -202,6 +202,11 @@ def destroy():
 def remove_all_achievements():
     with connect() as con:
         con.execute("DELETE FROM Achievement;")
+        try:
+            con.execute("DELETE FROM sqlite_sequence WHERE name='Achievement';")
+        except Exception:
+            # sqlite_sequence may not exist (older SQLite) or table could be missing; ignore
+            pass
 
 def remove_all_creatures():
     with connect() as con:
@@ -297,37 +302,38 @@ def create_default_user():
 
 def create_default_achievements(user_id):
     defaults = [
-        ("First Win", 1),
-        ("Perfect Run", 1),
-        ("Secret Boss", 1),
-        ("Nap Time", 1),
+        (1, "First Win", 1),
+        (2, "Perfect Run", 1),
+        (3, "Secret Boss", 1),
+        (4, "Nap Time", 1),
 
         # Pinball achievements
-        ("Pinball Rich", 50),    # ID 5: Zisk 50 peněz
-        ("Pinball Wizard", 100), # ID 6: Rekord 100
-        ("Pinball Builder", 1),  # ID 7: Položení prvku
+        (5, "Pinball Rich", 50),    # Zisk 50 peněz
+        (6, "Pinball Wizard", 100), # Rekord 100
+        (7, "Pinball Builder", 1),  # Položení prvku
 
         # Wallball achievements
-        ("Wallball Noobie", 1), # ID 8: Dokončení prvního levelu
-        ("Wallball Novice", 1), # ID 9: Dokončení druhého levelu
-        ("Wallball Pro", 1),    # ID 10: Dokončení třetího levelu
-        ("Wallball Expert", 1), # ID 11: Dokončení čtvrtého levelu
-        ("Wallball Master", 1),  # ID 12: Dokončení pátého levelu
+        (8, "Wallball Noobie", 1), # Dokončení prvního levelu
+        (9, "Wallball Novice", 1), # Dokončení druhého levelu
+        (10, "Wallball Pro", 1),    # Dokončení třetího levelu
+        (11, "Wallball Expert", 1), # Dokončení čtvrtého levelu
+        (12, "Wallball Master", 1),  # Dokončení pátého levelu
 
         # Brick Breaker achievements
-        ("Breaker Rookie", 500),   # Dosáhni 500 skóre
-        ("Brick Destroyer", 2000), # Dosáhni 2000 skóre
-        ("World Traveler", 1),     # Odemkni svět 3
-        ("Breaker Champion", 1),   # Vyhraj celou hru
-        ("Hardcore Legend", 1)     # Dokonči hru v hardcore režimu
+        (13, "Breaker Rookie", 500),   # Dosáhni 500 skóre
+        (14, "Brick Destroyer", 2000), # Dosáhni 2000 skóre
+        (15, "World Traveler", 1),     # Odemkni svět 3
+        (16, "Breaker Champion", 1),   # Vyhraj celou hru
+        (17, "Hardcore Legend", 1)     # Dokonči hru v hardcore režimu
     ]
     with connect() as con:
         cur = con.cursor()
-        for name, target in defaults:
+        for ach_id, name, target in defaults:
             cur.execute("""
-                INSERT OR IGNORE INTO Achievement (achvmnt_name, achvmnt_target, user_id)
-                VALUES (?, ?, ?)
-            """, (name, target, user_id))
+                INSERT OR REPLACE INTO Achievement
+                    (achvmnt_id, achvmnt_name, achvmnt_target, user_id, achvmnt_progress, completed)
+                VALUES (?, ?, ?, ?, 0, 0)
+            """, (ach_id, name, target, user_id))
 
 def add_achievement(user_id, name, target=1, progress=0):
     with connect() as con:
@@ -355,7 +361,10 @@ def update_achievement_progress(achvmnt_id, new_progress):
         cur = con.cursor()
 
         cur.execute("SELECT completed FROM Achievement WHERE achvmnt_id=?", (achvmnt_id,))
-        old_completed = bool(cur.fetchone()[0])
+        row = cur.fetchone()
+        if not row:
+            return None
+        old_completed = bool(row[0])
 
         cur.execute("""
             UPDATE Achievement
@@ -681,6 +690,16 @@ def clear_wallball_level(user_id, level_id):
     with connect() as con:
         con.execute("DELETE FROM WallballLevelState WHERE user_id=? AND level_id=?", (user_id, level_id))
         return True
+
+def reset_wallball_state(user_id):
+    """Reset wallball progress and clear all placed pieces."""
+    with connect() as con:
+        con.execute("DELETE FROM WallballLevelState WHERE user_id=?", (user_id,))
+        con.execute("DELETE FROM WallballProgress WHERE user_id=?", (user_id,))
+    ensure_wallball_progress(user_id)
+    with connect() as con:
+        con.execute("UPDATE WallballProgress SET max_unlocked_level = 1 WHERE user_id=?", (user_id,))
+    return {"max_unlocked_level": get_wallball_progress_db(user_id)}
 
 # --- FUNKCE PRO BRICK BREAKER ---
 

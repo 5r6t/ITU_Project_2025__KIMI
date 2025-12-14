@@ -22,5 +22,10 @@ export const SettingsModel = {
     async clearBreakerSave() {
         await API.delete("/api/breaker/state");
         return { success: true };
+    },
+
+    async resetWallball() {
+        const res = await API.post("/api/v1/wallball/reset_all");
+        return res.data;
     }
 };

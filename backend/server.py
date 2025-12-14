@@ -213,6 +213,11 @@ def pinball_ball_lost_endpoint():
     ensure_pinball_row(ADMIN_ID)
     return jsonify(pinball_ball_lost(ADMIN_ID))
 
+@app.route("/api/v1/pinball/reset_record", methods=["POST"])
+def pinball_reset_record_endpoint():
+    ensure_pinball_row(ADMIN_ID)
+    return jsonify(reset_pinball_record(ADMIN_ID))
+
 @app.route("/api/v1/pinball/cheat_money", methods=["POST"])
 def pinball_cheat_money():
     ensure_pinball_row(ADMIN_ID)
@@ -311,6 +316,12 @@ def reset_wallball_level_api():
     
     clear_wallball_level(ADMIN_ID, level_id)
     return jsonify({"success": True})
+
+@app.route('/api/v1/wallball/reset_all', methods=['POST'])
+def reset_wallball_all_api():
+    """Reset all wallball progress and placed pieces."""
+    result = reset_wallball_state(ADMIN_ID)
+    return jsonify({"success": True, **result})
 
 # --- BRICK BREAKER ENDPOINTS ---
 

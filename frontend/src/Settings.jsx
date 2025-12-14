@@ -45,6 +45,15 @@ export default function Settings() {
         setFeedback("Brick Breaker save cleared.");
       },
     },
+    {
+      key: "wallball-reset",
+      label: "Reset Wallball progress",
+      helper: "Clears placed pieces and sets max unlocked level back to 1.",
+      run: async () => {
+        const res = await SettingsModel.resetWallball();
+        setFeedback(`Wallball reset. Max unlocked level: ${res?.max_unlocked_level ?? 1}.`);
+      },
+    },
   ];
 
   const handleAction = async (action) => {
