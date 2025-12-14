@@ -34,13 +34,13 @@ http://localhost:5173
 │   breaker_levels.js (Šimon Dufek)
 │   Inventory.jsx (Šimon Dufek)
 │   main.jsx 
-│   Pinball.jsx
+│   Pinball.jsx (Pavel Hýža)
 │   PizzaBaking.jsx (Šimon Dufek)
 │   PizzaDecor.jsx (Šimon Dufek)
 │   Settings.jsx (Jaroslav Mervart)
 │   Solitaire.jsx (Jaroslav Mervart)
-│   Wallball.jsx
-│   wallball_levels.js
+│   Wallball.jsx (Pavel Hýža)
+│   wallball_levels.js (Pavel Hýža)
 │
 ├───assets 
 │
@@ -52,7 +52,7 @@ http://localhost:5173
 │       pizzaController.js (Šimon Dufek)
 │       sceneController.js (Jaroslav Mervart)
 │       solitaireController.js (Jaroslav Mervart)
-│       wallballController.js
+│       wallballController.js (Pavel Hýža)
 │
 ├───meta_components
 │       AchievementBox.jsx (Jaroslav Mervart)
@@ -71,13 +71,13 @@ http://localhost:5173
 │       breakerModel.js (Šimon Dufek)
 │       kimiModel.js (Jaroslav Mervart)
 │       kimiMoodModel.js (Jaroslav Mervart)
-│       pinballModel.js
+│       pinballModel.js (Pavel Hýža)
 │       pizzaModel.js (Šimon Dufek)
 │       sceneModel.js (Jaroslav Mervart)
 │       settingsModel.js (Jaroslav Mervart)
 │       solitaireModel.js (Jaroslav Mervart)
 │       solitaireProgressModel.js (Jaroslav Mervart)
-│       wallballModel.js
+│       wallballModel.js (Pavel Hýža)
 │
 └───styles
         AchievementBox.css (Jaroslav Mervart)
@@ -89,7 +89,7 @@ http://localhost:5173
         index.css
         Inventory.css (Šimon Dufek)
         KimiStatus.css (Jaroslav Mervart)
-        Pinball.css
+        Pinball.css (Pavel Hýža)
         PizzaBaking.css (Šimon Dufek)
         PizzaDecor.css (Šimon Dufek)
         SceneCarousel.css (Jaroslav Mervart)
@@ -97,5 +97,5 @@ http://localhost:5173
         Solitaire.css (Jaroslav Mervart)
         StatusBar.css (Jaroslav Mervart, Veronika Kubová)
         Utils.css (Jaroslav Mervart)
-        Wallball.css
+        Wallball.css (Pavel Hýža)
 ```
