@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from "./meta_components/Header";
 import { createPinballController } from "./controllers/pinballController";
 import './styles/Pinball.css';
+import { useAchievements } from "./meta_components/AchievementContext";
 
 const W = 1200;
 const H = 800;
@@ -11,7 +12,7 @@ const WALL_THICKNESS = 40;
 const FLIPPER_COLOR = '#e74c3c';
 const BUMPER_COLOR = '#f1c40f';
 const TRIANGLE_COLOR = '#00b7ff';
-const SPINNER_COLOR = '#2ecc71'; // Zelená pro Spinner
+const SPINNER_COLOR = '#2ecc71';
 const BALL_COLOR = '#ecf0f1';
 
 const SHOP_ITEMS = [
@@ -22,6 +23,9 @@ const SHOP_ITEMS = [
 
 export default function Pinball() {
     const navigate = useNavigate();
+
+    const { completeAchievement } = useAchievements();
+
     const sceneRef = useRef(null);
     const engineRef = useRef(Engine.create());
     
@@ -39,7 +43,7 @@ export default function Pinball() {
     const [debugLog, setDebugLog] = useState([]);
 
     const controller = useRef(
-        createPinballController(setScore, setRecord, setMoney, setPlacedItems, setDebugLog)
+        createPinballController(setScore, setRecord, setMoney, setPlacedItems, setDebugLog, completeAchievement)
     ).current;
 
     useEffect(() => { controller.init(); }, []);

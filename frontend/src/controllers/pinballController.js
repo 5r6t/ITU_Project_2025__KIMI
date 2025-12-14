@@ -1,12 +1,11 @@
 import { PinballModel } from "../models/pinballModel";
 
-export function createPinballController(setScore, setRecord, setMoney, setPlacedItems, setDebugLog) {
-    // Lokální proměnné pro dávkování
+// 1. ZMĚNA: Přidán argument 'completeAchievement'
+export function createPinballController(setScore, setRecord, setMoney, setPlacedItems, setDebugLog, completeAchievement) {
     let pendingPoints = 0;
     let syncTimer = null;
 
     const log = (msg) => {
-        // console.log("[PinballCtrl]", msg); // Volitelné
         if (setDebugLog) setDebugLog(prev => [msg, ...prev].slice(0, 5));
     };
 
@@ -28,30 +27,43 @@ export function createPinballController(setScore, setRecord, setMoney, setPlaced
             setRecord(data.record || 0);
             setMoney(data.money || 0);
             setPlacedItems(data.items || []);
-            log(`Loaded: $${data.money || 0}`);
+            
+            // Kontrola při startu (kdyby už to měl splněné z minula)
+            if ((data.money || 0) >= 50) completeAchievement(5, data.money);
+            if ((data.record || 0) >= 100) completeAchievement(6, data.record);
         },
 
-        // --- Start/Pause/GameOver odstraněno ---
-
         handleHit: (points) => {
-            setScore(prev => prev + points);
-            setMoney(prev => prev + points);
-            pendingPoints += points;
+            // Získáme aktuální hodnoty pomocí callbacku setScore/setMoney, 
+            // ale tady uvnitř closure nemáme přímý přístup k aktuální hodnotě state, 
+            // pokud ji nepředáme. 
+            // Pro zjednodušení budeme předpokládat, že React state update vyřešíme,
+            // ale pro Achievementy si musíme držet přibližnou hodnotu nebo to střelit "naslepo".
+            // Lepší varianta:
+            
+            setScore(prev => {
+                const newScore = prev + points;
+                // 2. ZMĚNA: Kontrola Rekordu (ID 6)
+                if (newScore >= 100) completeAchievement(6, newScore); 
+                return newScore;
+            });
 
+            setMoney(prev => {
+                const newMoney = prev + points;
+                // 3. ZMĚNA: Kontrola Peněz (ID 6)
+                if (newMoney >= 50) completeAchievement(5, newMoney);
+                return newMoney;
+            });
+
+            pendingPoints += points;
             if (!syncTimer) {
-                syncTimer = setTimeout(() => {
-                    flushHits();
-                    syncTimer = null;
-                }, 1000);
+                syncTimer = setTimeout(() => { flushHits(); syncTimer = null; }, 1000);
             }
         },
 
         handleBallLost: async () => {
             log("Ball Lost!");
-            if (syncTimer) {
-                clearTimeout(syncTimer);
-                syncTimer = null;
-            }
+            if (syncTimer) { clearTimeout(syncTimer); syncTimer = null; }
             await flushHits();
 
             const data = await PinballModel.ballLost();
@@ -60,13 +72,19 @@ export function createPinballController(setScore, setRecord, setMoney, setPlaced
                 setRecord(data.record);
                 setMoney(data.money);
                 setScore(0);
+                
+                // Pojistka: Kontrola rekordu i po uložení na server
+                if (data.record >= 100) completeAchievement(6, data.record);
             }
         },
 
         cheatMoney: async () => {
             log("Cheating money...");
             const res = await PinballModel.cheatMoney();
-            if (res) setMoney(res.money);
+            if (res) {
+                setMoney(res.money);
+                if (res.money >= 50) completeAchievement(5, res.money);
+            }
         },
 
         buyItem: async (type, x, y, price) => {
@@ -75,6 +93,10 @@ export function createPinballController(setScore, setRecord, setMoney, setPlaced
             if (res && res.success) {
                 setMoney(res.money);
                 setPlacedItems(prev => [...prev, res.item]);
+                
+                // 4. ZMĚNA: Splnění "Builder" (ID 7)
+                completeAchievement(7, 1); 
+                
                 return true;
             }
             return false;
@@ -82,9 +104,7 @@ export function createPinballController(setScore, setRecord, setMoney, setPlaced
 
         moveItem: async (id, x, y) => {
             await PinballModel.moveItem(id, x, y);
-            setPlacedItems(prev => prev.map(item => 
-                item.id === id ? { ...item, x, y } : item
-            ));
+            setPlacedItems(prev => prev.map(item => item.id === id ? { ...item, x, y } : item));
         },
 
         sellItem: async (id, price) => {
