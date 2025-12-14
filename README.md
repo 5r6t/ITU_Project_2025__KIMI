@@ -30,13 +30,13 @@ http://localhost:5173
 ```py
 │   Achievements.jsx (Jaroslav Mervart)
 │   App.jsx (Jaroslav Mervart)
-│   Breaker.jsx
-│   breaker_levels.js
-│   Inventory.jsx
+│   Breaker.jsx (Šimon Dufek)
+│   breaker_levels.js (Šimon Dufek)
+│   Inventory.jsx (Šimon Dufek)
 │   main.jsx 
 │   Pinball.jsx
-│   PizzaBaking.jsx
-│   PizzaDecor.jsx
+│   PizzaBaking.jsx (Šimon Dufek)
+│   PizzaDecor.jsx (Šimon Dufek)
 │   Settings.jsx (Jaroslav Mervart)
 │   Solitaire.jsx (Jaroslav Mervart)
 │   Wallball.jsx
@@ -46,10 +46,10 @@ http://localhost:5173
 │
 ├───controllers
 │       achievementController.js (Jaroslav Mervart)
-│       breakerController.js
+│       breakerController.js (Šimon Dufek)
 │       kimiController.js (Jaroslav Mervart)
-│       pinballController.js
-│       pizzaController.js
+│       pinballController.js (Šimon Dufek)
+│       pizzaController.js (Šimon Dufek)
 │       sceneController.js (Jaroslav Mervart)
 │       solitaireController.js (Jaroslav Mervart)
 │       wallballController.js
@@ -68,11 +68,11 @@ http://localhost:5173
 │
 ├───models
 │       achievementModel.js (Jaroslav Mervart)
-│       breakerModel.js
+│       breakerModel.js (Šimon Dufek)
 │       kimiModel.js (Jaroslav Mervart)
 │       kimiMoodModel.js (Jaroslav Mervart)
 │       pinballModel.js
-│       pizzaModel.js
+│       pizzaModel.js (Šimon Dufek)
 │       sceneModel.js (Jaroslav Mervart)
 │       settingsModel.js (Jaroslav Mervart)
 │       solitaireModel.js (Jaroslav Mervart)
@@ -84,14 +84,14 @@ http://localhost:5173
         AchievementInfo.css (Jaroslav Mervart)
         Achievements.css (Jaroslav Mervart)
         App.css (Jaroslav Mervart, Šimon Dufek, Pavel Hýža)
-        Breaker.css 
+        Breaker.css (Šimon Dufek)
         Header.css (Jaroslav Mervart)
         index.css
-        Inventory.css
+        Inventory.css (Šimon Dufek)
         KimiStatus.css (Jaroslav Mervart)
         Pinball.css
-        PizzaBaking.css
-        PizzaDecor.css
+        PizzaBaking.css (Šimon Dufek)
+        PizzaDecor.css (Šimon Dufek)
         SceneCarousel.css (Jaroslav Mervart)
         Settings.css (Jaroslav Mervart)
         Solitaire.css (Jaroslav Mervart)
