@@ -10,7 +10,7 @@ GUI oriented project from ITU (User Interface Programming) class
 ## Node.js
 - download https://nodejs.org/en/download
 - installer should add `npm` to PATH
-- general libs `npm install`
+- general libs `npm install` inside frontend folder
 - ~~HTTP `npm install axios`~~
 - ~~`npm install react-router-dom`~~
 
