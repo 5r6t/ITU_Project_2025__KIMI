@@ -1,10 +1,14 @@
+/*
+View Component: PizzaBaking.jsx
+Author: Šimon Dufek
+*/
 import React, { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Header from './meta_components/Header';
 import { createBakingController } from './controllers/pizzaController';
 import './styles/PizzaBaking.css';
 
-export default function PizzaBaking() {
+export default function PizzaBaking() { // Hlavní komponenta pro pečení pizzy
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -15,19 +19,18 @@ export default function PizzaBaking() {
   const [pizzaName, setPizzaName] = useState('Moje Pizza');
   
   const intervalRef = useRef(null);
-  const DURATION = 10; // seconds
+  const DURATION = 10;
 
   const ctrl = createBakingController(navigate);
 
-  useEffect(() => {
+  useEffect(() => { // Načtení počátečních toppingů
     const data = ctrl.getInitialToppings(location.state);
     setToppings(data);
   }, [location.state]);
 
-  // Timer Loop
-  useEffect(() => {
+  useEffect(() => { // Hlavní časovač pečení
     if (!running) return;
-    intervalRef.current = setInterval(() => {
+    intervalRef.current = setInterval(() => { // Aktualizace času
       setTime(prev => {
         const nextTime = +(prev + 0.1).toFixed(1);
         if (nextTime >= DURATION) {
@@ -37,21 +40,21 @@ export default function PizzaBaking() {
         return nextTime;
       });
     }, 100);
-    return () => clearInterval(intervalRef.current);
+    return () => clearInterval(intervalRef.current); // Vyčištění intervalu
   }, [running]);
 
-  const stopGame = (finalTime) => {
+  const stopGame = (finalTime) => { // Zastavení pečení
     clearInterval(intervalRef.current);
     setRunning(false);
     const res = ctrl.evaluateResult(finalTime, DURATION);
     setResult(res);
   };
 
-  const handlePull = () => {
+  const handlePull = () => { // Ovladač pro tlačítko "Vyndat"
     if(running) stopGame(time);
   };
 
-  const handleRetry = () => {
+  const handleRetry = () => { // Restart pečení
     setTime(0);
     setResult(null);
     setPizzaName('Moje Pizza');
@@ -60,24 +63,22 @@ export default function PizzaBaking() {
 
   const progress = Math.min(100, Math.round((time / DURATION) * 100));
   const isDone = !!result;
-
-  // --- Visual Zone Logic (UI only) ---
   const TARGET_CENTER = Math.floor(DURATION * 0.5); 
   const TARGET_HALF_WINDOW = 1.5;
-
-  // Zone boundaries calculation
   const undercooked_end = TARGET_CENTER - TARGET_HALF_WINDOW;
   const perfect_start_inner = TARGET_CENTER - (TARGET_HALF_WINDOW * 0.5);
   const perfect_end_inner = TARGET_CENTER + (TARGET_HALF_WINDOW * 0.5);
   const good_end = TARGET_CENTER + TARGET_HALF_WINDOW;
   const burnt_start = good_end;
 
-  const timeToPercent = (t) => Math.max(0, Math.min(100, (t / DURATION) * 100));
+  const timeToPercent = (t) => Math.max(0, Math.min(100, (t / DURATION) * 100)); // Převod času na procenta pro progress bar
 
+  // Render komponenty
   return (
     <div className="pizza-baking-page">
       <Header title="Pizza se peče..." onClose={() => navigate('/')} />
       
+      {/* Hlavní obsah pečení pizzy */}
       <div className="baking-wrap">
         <div className="oven-section">
           <div className="oven-label">🔥 TROUBA 🔥</div>
@@ -115,7 +116,7 @@ export default function PizzaBaking() {
               <button className="pull-btn" onClick={handlePull} disabled={!running}>Vyndat!</button>
             </div>
 
-            {/* Progress Bar with Zones */}
+            {/* Progress Bar se zónami*/}
             <div className="progress-container">
               <div className="zone zone-undercooked" style={{
                 left: `${timeToPercent(0)}%`,
@@ -148,6 +149,7 @@ export default function PizzaBaking() {
               <div className="legend-item"><span className="legend-color" style={{background:'#8b4513'}}></span>Spáleno</div>
             </div>
 
+            {/* Zobrazení výsledků pečení */}
             {result && (
               <div className={`result-panel result-${result.classification}`}>
                 <div className="result-header">
@@ -160,12 +162,14 @@ export default function PizzaBaking() {
                    <div className="result-title">{result.classification.toUpperCase()}</div>
                 </div>
                 
+                {/* Score Display */}
                 <div className="score-display">
                   <div className="score-bar-container">
                     <div className="score-bar-fill" style={{width: `${result.accuracy * 100}%`}}></div>
                   </div>
                 </div>
-
+                
+                {/* Feedback Message */}
                 <div className="result-feedback">
                   {result.classification === 'perfect' && '🌟 Perfektně! Tvoje pizza je mistr-dílo!'}
                   {result.classification === 'good' && '✨ Hezký výsledek! Pizza je chutná!'}
@@ -173,6 +177,7 @@ export default function PizzaBaking() {
                   {result.classification === 'burnt' && '🌡️ Příliš dlouho! Pizza je spálená.'}
                 </div>
 
+                {/* Input pro pojmenování pizzy */}
                 <div className="pizza-name-input-container">
                   <label htmlFor="pizza-name">Pojmenuj svou pizzu:</label>
                   <input
@@ -186,6 +191,7 @@ export default function PizzaBaking() {
                   />
                 </div>
 
+                {/* Akční tlačítka */}
                 <div className="result-actions">
                   <button onClick={() => ctrl.savePizza(pizzaName, toppings, result)} className="save-btn">Uložit do inventáře</button>
                   <button onClick={handleRetry} className="retry-btn">Zkusit znovu</button>

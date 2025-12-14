@@ -1,3 +1,7 @@
+/*
+Model Component: Breaker.jsx
+Author: Šimon Dufek
+*/
 import axios from "axios";
 import { LEVELS } from '../breaker_levels';
 
@@ -12,13 +16,12 @@ const POWERUP_SIZE = 30;
 const POWERUP_SPEED = 2;
 const DROP_CHANCE = 0.3; 
 
-export const DIFFICULTIES = {
+export const DIFFICULTIES = { // Nastavení obtížností
     EASY: { label: "Lehká", paddleWidth: 220, ballSpeed: 2.5, lives: 4, color: "#2ecc71", scoreMultiplier: 1 },
     NORMAL: { label: "Střední", paddleWidth: 180, ballSpeed: 4, lives: 3, color: "#f1c40f", scoreMultiplier: 1.5 },
     HARD: { label: "Těžká", paddleWidth: 120, ballSpeed: 6, lives: 2, color: "#e74c3c", scoreMultiplier: 2.5 }
 };
 
-// ... (Konstanty pro cihly PADDLE_WIDTH_EXPANDED, BRICK_ROWS atd. zůstávají stejné) ...
 const PADDLE_WIDTH_EXPANDED = 300;
 const BRICK_ROWS = 5;
 const BRICK_COLS = 8;
@@ -28,7 +31,7 @@ const BRICK_OFFSET_LEFT = 50;
 const BRICK_WIDTH = (GAME_WIDTH - (2 * BRICK_OFFSET_LEFT) - ((BRICK_COLS - 1) * BRICK_PADDING)) / BRICK_COLS;
 const BRICK_HEIGHT = 35;
 
-function initBricks(worldIndex, subLevelIndex) {
+function initBricks(worldIndex, subLevelIndex) { // Inicializace cihel pro daný svět a podúroveň
     const bricks = [];
     const world = LEVELS[worldIndex % LEVELS.length];
     const levelLayout = world[subLevelIndex % world.length];
@@ -39,7 +42,7 @@ function initBricks(worldIndex, subLevelIndex) {
             if (type > 0) {
                 const brickX = c * (BRICK_WIDTH + BRICK_PADDING) + BRICK_OFFSET_LEFT;
                 const brickY = r * (BRICK_HEIGHT + BRICK_PADDING) + BRICK_OFFSET_TOP;
-                bricks.push({ 
+                bricks.push({
                     x: brickX, y: brickY, width: BRICK_WIDTH, height: BRICK_HEIGHT, 
                     status: 1, health: type, maxHealth: type
                 });
@@ -49,11 +52,11 @@ function initBricks(worldIndex, subLevelIndex) {
     return bricks;
 }
 
-function createBall(x, y, dx, dy, moving = false) {
+function createBall(x, y, dx, dy, moving = false) { // Vytvoření nové koule
     return { x, y, dx, dy, moving };
 }
 
-function resetPositions(state) {
+function resetPositions(state) { // Resetování pozic pálky a koulí
     const currentPaddleWidth = state.paddleWidthDefault || DIFFICULTIES.NORMAL.paddleWidth;
     return {
         ...state,
@@ -69,42 +72,40 @@ function resetPositions(state) {
     };
 }
 
-export const BreakerModel = {
-    async fetchStats() {
+export const BreakerModel = { // Hlavní model pro správu herního stavu a komunikaci se serverem
+    async fetchStats() { // Načtení nejvyššího skóre ze serveru
         try { return (await axios.get(`${API_URL}/api/breaker/stats`)).data.highScore || 0; } 
         catch (e) { return 0; }
     },
 
-    async saveScoreServer(score) {
+    async saveScoreServer(score) { // Uložení skóre na server
         try { return (await axios.post(`${API_URL}/api/breaker/save`, { score })).data.highScore; } 
         catch (e) { return null; }
     },
 
-    async fetchSettings() {
+    async fetchSettings() { // Načtení nastavení power-upů ze serveru
         try { return (await axios.get(`${API_URL}/api/breaker/powerups`)).data.powerups_enabled; } 
         catch (e) { return false; }
     },
 
-    async saveSettings(enabled) {
+    async saveSettings(enabled) { // Uložení nastavení power-upů na server
         const res = await axios.post(`${API_URL}/api/breaker/powerups`, { enabled });
         return res.data.powerups_enabled;
     },
 
-    async fetchProgress() {
+    async fetchProgress() { // Načtení postupu hráče (odemčené světy) ze serveru
         try { return (await axios.get(`${API_URL}/api/breaker/progress`)).data.maxUnlockedWorld || 0; }
         catch (e) { return 0; }
     },
 
-    async saveProgress(worldIndex) {
+    async saveProgress(worldIndex) { // Uložení postupu hráče na server
         try { 
             const res = await axios.post(`${API_URL}/api/breaker/progress`, { worldIndex });
             return res.data.maxUnlockedWorld;
         } catch (e) { return null; }
     },
-
-    // --- NOVÉ METODY PRO UKLÁDÁNÍ STAVU ---
     
-    async saveGameState(state) {
+    async saveGameState(state) { // Uložení aktuálního stavu hry na server
         try {
             await axios.post(`${API_URL}/api/breaker/state`, state);
         } catch (e) {
@@ -112,7 +113,7 @@ export const BreakerModel = {
         }
     },
 
-    async loadGameState() {
+    async loadGameState() { // Načtení uloženého stavu hry ze serveru
         try {
             const res = await axios.get(`${API_URL}/api/breaker/state`);
             return res.data.state; 
@@ -121,7 +122,7 @@ export const BreakerModel = {
         }
     },
 
-    async clearGameState() {
+    async clearGameState() { // Vymazání uloženého stavu hry na serveru
         try {
             await axios.delete(`${API_URL}/api/breaker/state`);
         } catch (e) {
@@ -129,9 +130,7 @@ export const BreakerModel = {
         }
     },
 
-    // ----------------------------------------
-
-    initGameLocal(difficultyKey = 'NORMAL', worldIndex = 0, unlockedWorldMax = 0) {
+    initGameLocal(difficultyKey = 'NORMAL', worldIndex = 0, unlockedWorldMax = 0) { // Inicializace nového herního stavu
         const settings = DIFFICULTIES[difficultyKey] || DIFFICULTIES.NORMAL;
         const safeWorldIndex = worldIndex <= unlockedWorldMax ? worldIndex : unlockedWorldMax;
 
@@ -163,8 +162,7 @@ export const BreakerModel = {
         return resetPositions(initialState);
     },
 
-    movePaddle(state, direction) {
-        // ... (Kód zůstává stejný) ...
+    movePaddle(state, direction) { // Pohyb pálky vlevo nebo vpravo
         if (state.gameOver || state.gameWon || !state.gameStarted) return state;
         let newPaddleX = state.paddleX;
         const paddleSpeed = state.baseSpeed * 2; 
@@ -179,18 +177,14 @@ export const BreakerModel = {
         return { ...state, paddleX: newPaddleX, balls: updatedBalls };
     },
 
-    launchBall(state) {
-        // ... (Kód zůstává stejný) ...
+    launchBall(state) { // Spuštění koule do pohybu
         if (state.gameOver || state.gameWon || !state.gameStarted) return state;
         const launchedBalls = state.balls.map(ball => ({ ...ball, moving: true }));
         if (state.balls.some(b => !b.moving)) return { ...state, balls: launchedBalls };
         return state;
     },
 
-    updatePhysics(state) {
-        // ... (Celá logika fyziky updatePhysics zůstává stejná) ...
-        // (Zkopírujte původní tělo funkce updatePhysics, zde zkráceno pro přehlednost)
-        
+    updatePhysics(state) { // Aktualizace fyziky hry (pohyb koulí, kolize, power-upy, kontrola konce hry)        
         if (state.gameOver || state.gameWon || !state.gameStarted) return state;
 
         let { 
@@ -206,7 +200,7 @@ export const BreakerModel = {
 
         let survivingBalls = [];
 
-        balls.forEach(ball => {
+        balls.forEach(ball => { // Zpracování každé koule
             if (!ball.moving) { survivingBalls.push(ball); return; }
 
             let { x, y, dx, dy } = ball;
@@ -224,7 +218,7 @@ export const BreakerModel = {
             }
 
             let hitBrick = false;
-            bricks = bricks.map(brick => {
+            bricks = bricks.map(brick => { // Zpracování kolizí s cihlami
                 if (brick.status === 1 && !hitBrick) {
                     if (x + BALL_RADIUS > brick.x && x - BALL_RADIUS < brick.x + brick.width && 
                         y + BALL_RADIUS > brick.y && y - BALL_RADIUS < brick.y + brick.height) {
@@ -234,7 +228,7 @@ export const BreakerModel = {
                         bricksChanged = true;
                         
                         const newHealth = brick.health - 1;
-                        if (newHealth <= 0) {
+                        if (newHealth <= 0) { // Cihla je zničena
                             score += Math.ceil(10 * scoreMultiplier * brick.maxHealth);
                             if (powerUpsEnabled && Math.random() < DROP_CHANCE) {
                                 const rand = Math.random();
@@ -254,7 +248,7 @@ export const BreakerModel = {
             if (y + dy <= GAME_HEIGHT - BALL_RADIUS) survivingBalls.push({ ...ball, x, y, dx, dy });
         });
 
-        if (survivingBalls.length === 0) {
+        if (survivingBalls.length === 0) { // Žádné přeživší koule - ztráta života
             lives--;
             paddleWidth = state.paddleWidthDefault; 
             if (lives <= 0) newGameOver = true;
@@ -265,7 +259,7 @@ export const BreakerModel = {
         }
 
         let activePowerUps = [];
-        if (powerUps) {
+        if (powerUps) { // Zpracování power-upů
             powerUps.forEach(p => {
                 p.y += POWERUP_SPEED;
                 let consumed = false;
@@ -288,9 +282,9 @@ export const BreakerModel = {
 
         const activeBricksCount = bricks.filter(b => b.status === 1).length;
         
-        if (activeBricksCount === 0 && !newGameOver) {
+        if (activeBricksCount === 0 && !newGameOver) { // Všechny cihly zničeny - přechod na další podúroveň nebo svět
             subLevelIndex++; 
-            if (subLevelIndex >= LEVELS[worldIndex].length) {
+            if (subLevelIndex >= LEVELS[worldIndex].length) { // Přechod na další svět
                 worldIndex++; 
                 subLevelIndex = 0; 
                 if (worldIndex > maxUnlockedWorld) {
@@ -298,11 +292,11 @@ export const BreakerModel = {
                 }
             }
 
-            if (worldIndex >= LEVELS.length) {
+            if (worldIndex >= LEVELS.length) { // Všechny světy dokončeny - výhra
                 newGameWon = true;
                 worldIndex = LEVELS.length - 1; 
                 subLevelIndex = LEVELS[worldIndex].length - 1; 
-            } else {
+            } else { // Inicializace nové podúrovně
                 nextInitialState = resetPositions({
                     ...state,
                     score, highScore, lives,
@@ -317,7 +311,7 @@ export const BreakerModel = {
 
         if (nextInitialState) return nextInitialState;
 
-        return {
+        return { // Aktualizovaný herní stav
             ...state,
             balls: survivingBalls, paddleX, paddleWidth, bricks: bricksChanged ? bricks : state.bricks,
             powerUps: activePowerUps, score, lives, highScore, gameOver: newGameOver, gameWon: newGameWon, powerUpsEnabled,

@@ -1,10 +1,14 @@
+/*
+Controller Component: PizzaDecor.jsx, PizzaBaking.jsx
+Author: Šimon Dufek
+*/
 import { PizzaModel } from "../models/pizzaModel";
 
 function uid() {
   return Math.random().toString(36).slice(2, 9);
 }
 
-// --- Decor Controller ---
+// --- Decoration Controller ---
 export function createDecorController(toppings, setToppings, navigate) {
   const commit = (newToppings) => {
     setToppings(newToppings);
@@ -14,13 +18,13 @@ export function createDecorController(toppings, setToppings, navigate) {
     }
   };
 
-  return {
+  return { // Metody pro manipulaci s polevou
     load: () => {
       const saved = PizzaModel.loadToppings();
       if (saved) setToppings(saved);
     },
 
-    addTopping: (typeObj) => {
+    addTopping: (typeObj) => { // Přidání nové polevy
       const newTopping = {
         id: uid(),
         type: typeObj.type || typeObj,
@@ -33,31 +37,31 @@ export function createDecorController(toppings, setToppings, navigate) {
       commit([...toppings, newTopping]);
     },
 
-    updateToppingPosition: (id, x, y) => {
+    updateToppingPosition: (id, x, y) => { // Aktualizace pozice polevy
       const updated = toppings.map(t => t.id === id ? { ...t, x, y } : t);
       setToppings(updated);
     },
     
-    finalizeDrag: () => {
+    finalizeDrag: () => { // Uložení pozice po přetažení
         PizzaModel.saveToppings(toppings);
     },
 
-    scaleTopping: (id) => {
+    scaleTopping: (id) => { // Změna velikosti toppingů
       const updated = toppings.map(t => 
         t.id === id ? { ...t, scale: Math.max(0.5, Math.min(5, (t.scale || 2) + 1)) } : t
       );
       commit(updated);
     },
 
-    removeTopping: (id) => {
+    removeTopping: (id) => { // Odebrání toppingů
       commit(toppings.filter(t => t.id !== id));
     },
 
-    clear: () => {
+    clear: () => { // Vyčištění všech toppingů
       commit([]);
     },
 
-    startBaking: () => {
+    startBaking: () => { // Přechod na pečení
       PizzaModel.saveToppings(toppings);
       navigate('/pizza-baking', { state: { toppings } });
     }
@@ -66,17 +70,17 @@ export function createDecorController(toppings, setToppings, navigate) {
 
 // --- Baking Controller ---
 export function createBakingController(navigate) {
-  return {
-    getInitialToppings: (locationState) => {
+  return { // Metody pro pečení pizzy
+    getInitialToppings: (locationState) => { // Načtení toppingů
       if (locationState?.toppings) return locationState.toppings;
       return PizzaModel.loadToppings();
     },
 
-    evaluateResult: (time, duration) => {
+    evaluateResult: (time, duration) => { // Vyhodnocení výsledku pečení
       return PizzaModel.calculateBakeResult(time, duration);
     },
 
-    savePizza: async (name, toppings, result) => {
+    savePizza: async (name, toppings, result) => { // Uložení pizzy
       try {
         const payload = { 
           name: name || 'Custom Pizza', 
@@ -93,8 +97,6 @@ export function createBakingController(navigate) {
         
         if (response && response.pizza_id) {
             PizzaModel.clearToppings(); 
-            
-            //alert('Pizza uložena do inventáře jako ' + response.ingredient_name);
             navigate('/');
         } else {
             alert('Uloženo, ale odpověď serveru byla nečekaná.');

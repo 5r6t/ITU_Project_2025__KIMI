@@ -1,3 +1,8 @@
+/*
+View Component: Breaker.jsx
+Author: Šimon Dufek
+*/
+
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from './meta_components/Header';
@@ -6,7 +11,7 @@ import { GAME_WIDTH, GAME_HEIGHT, DIFFICULTIES } from './models/breakerModel';
 import { LEVELS } from './breaker_levels'; 
 import './styles/Breaker.css';
 
-export default function Breaker() {
+export default function Breaker() { // Hlavní komponenta hry Breaker
     const navigate = useNavigate();
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
@@ -22,7 +27,7 @@ export default function Breaker() {
     }
     const ctrl = controllerRef.current;
 
-    useEffect(() => {
+    useEffect(() => { // Inicializace a úklid
         ctrl.init();
         const onKeyDown = (e) => ctrl.handleKeyDown(e);
         const onKeyUp = (e) => ctrl.handleKeyUp(e); 
@@ -32,7 +37,7 @@ export default function Breaker() {
         window.addEventListener("keyup", onKeyUp);
         document.addEventListener("fullscreenchange", onFsChange);
 
-        return () => {
+        return () => { // Úklid při odchodu z komponenty
             ctrl.cleanup();
             window.removeEventListener("keydown", onKeyDown);
             window.removeEventListener("keyup", onKeyUp);
@@ -40,7 +45,7 @@ export default function Breaker() {
         };
     }, []);
 
-    const toggleFullscreen = () => {
+    const toggleFullscreen = () => { // Přepínání režimu celé obrazovky
         if (!document.fullscreenElement) {
             containerRef.current.requestFullscreen().catch(err => console.error(err));
         } else {
@@ -48,18 +53,16 @@ export default function Breaker() {
         }
     };
 
-    useEffect(() => {
+    useEffect(() => { // Vykreslování hry
         const canvas = canvasRef.current;
         if (!canvas || !gameState) return;
         const ctx = canvas.getContext('2d');
 
-        // Pozadí
         ctx.fillStyle = "#1a252f";
         ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-        // VYKRESLENÍ (Cihly, PowerUps, Pálka, Míčky)
         if (gameState.bricks) {
-            gameState.bricks.forEach(brick => {
+            gameState.bricks.forEach(brick => { // Cihly
                 if (brick.status === 1) {
                     ctx.beginPath();
                     ctx.rect(brick.x, brick.y, brick.width, brick.height);
@@ -75,8 +78,8 @@ export default function Breaker() {
                 }
             });
         }
-        if (gameState.powerUps) {
-            gameState.powerUps.forEach(p => {
+        if (gameState.powerUps) { 
+            gameState.powerUps.forEach(p => { // Power-upy
                 ctx.beginPath();
                 if (p.type === 'LIFE') ctx.fillStyle = "#e74c3c";
                 else if (p.type === 'WIDE') ctx.fillStyle = "#2ecc71";
@@ -88,7 +91,7 @@ export default function Breaker() {
                 ctx.closePath();
             });
         }
-        if (gameState.paddleWidth) {
+        if (gameState.paddleWidth) { // Pálka
             ctx.beginPath();
             ctx.fillStyle = "rgba(0,0,0,0.3)";
             ctx.fillRect(gameState.paddleX + 5, GAME_HEIGHT - gameState.paddleHeight + 5, gameState.paddleWidth, gameState.paddleHeight);
@@ -96,15 +99,15 @@ export default function Breaker() {
             ctx.fillRect(gameState.paddleX, GAME_HEIGHT - gameState.paddleHeight, gameState.paddleWidth, gameState.paddleHeight);
             ctx.closePath();
         }
-        if (gameState.balls) {
-            gameState.balls.forEach(ball => {
+        if (gameState.balls) { 
+            gameState.balls.forEach(ball => { // Míčky
                 ctx.beginPath();
                 ctx.arc(ball.x, ball.y, gameState.ballRadius, 0, Math.PI * 2);
                 ctx.fillStyle = "#ecf0f1";
                 ctx.fill();
                 ctx.closePath();
             });
-            if (gameState.gameStarted && !gameState.balls.some(b => b.moving) && !gameState.gameOver && !gameState.gameWon) {
+            if (gameState.gameStarted && !gameState.balls.some(b => b.moving) && !gameState.gameOver && !gameState.gameWon) { // Nápověda ke spuštění hry
                 ctx.font = "bold 50px Arial";
                 ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
                 ctx.textAlign = "center";
@@ -119,6 +122,7 @@ export default function Breaker() {
 
     const canUsePowerUps = (gameState.maxUnlockedWorld || 0) >= 3;
 
+    // Hlavní vykreslovací část komponenty
     return (
         <div className="breaker-container" ref={containerRef}>
             <div className="game-header-controls">
@@ -155,7 +159,7 @@ export default function Breaker() {
             <div className="game-wrapper">
                 <canvas ref={canvasRef} width={GAME_WIDTH} height={GAME_HEIGHT} className="game-canvas"/>
 
-                {/* --- MODERNÍ MODÁLNÍ MENU --- */}
+                {/* --- VÝBĚROVÉ MENU --- */}
                 {!gameState.gameStarted && !gameState.gameOver && !gameState.gameWon && (
                     <div className="modal-overlay">
                         <div className="modal-content">

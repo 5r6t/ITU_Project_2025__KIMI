@@ -1,8 +1,12 @@
+/*
+Model Component: PizzaDecor.jsx, PizzaBaking.jsx
+Author: Šimon Dufek
+*/
 import axios from "axios";
 
-const API_URL = "http://127.0.0.1:5000";
+const API_URL = "http://127.0.0.1:5000"; // Backend API URL
 
-export const TOPPING_EFFECTS = {
+export const TOPPING_EFFECTS = { // Efekty jednotlivých toppingů
   tomato: { hunger: 8, clean: 2 },
   cheese: { hunger: 18 },
   mushroom: { hunger: 6, clean: 1 },
@@ -10,7 +14,7 @@ export const TOPPING_EFFECTS = {
   bacon: { hunger: 25, clean: -5 },
 };
 
-export const SPECIAL_RECIPES = [
+export const SPECIAL_RECIPES = [ // Speciální recepty pro bonusy
   {
     id: 'classic',
     name: 'Classic Margherita',
@@ -48,7 +52,7 @@ export const SPECIAL_RECIPES = [
   },
 ];
 
-export const PALETTE = [
+export const PALETTE = [ // Dostupné toppingy
   { type: 'tomato', label: 'Tomato', emoji: '🍅' },
   { type: 'cheese', label: 'Cheese', emoji: '🧀' },
   { type: 'mushroom', label: 'Mushroom', emoji: '🍄' },
@@ -56,8 +60,8 @@ export const PALETTE = [
   { type: 'bacon', label: 'Bacon', emoji: '🥓' },
 ];
 
-export const PizzaModel = {
-  loadToppings() {
+export const PizzaModel = { // Model pro správu toppingů a výpočty
+  loadToppings() { // Načtení toppingů z localStorage
     try {
       const raw = localStorage.getItem('pizza_toppings');
       return raw ? JSON.parse(raw) : [];
@@ -67,7 +71,7 @@ export const PizzaModel = {
     }
   },
 
-  saveToppings(toppings) {
+  saveToppings(toppings) { // Uložení toppingů do localStorage
     try {
       localStorage.setItem('pizza_toppings', JSON.stringify(toppings));
     } catch (e) {
@@ -75,7 +79,7 @@ export const PizzaModel = {
     }
   },
 
-  clearToppings() {
+  clearToppings() { // Vyčištění toppingů z localStorage
     try {
       localStorage.removeItem('pizza_toppings');
     } catch (e) {
@@ -83,10 +87,9 @@ export const PizzaModel = {
     }
   },
 
-  // --- Calculations ---
-  calculateStats(toppings) {
+  calculateStats(toppings) { // Výpočet efektů pizzy
     const base = { hunger: 0, clean: 0, energy: 0 };
-    toppings.forEach((t) => {
+    toppings.forEach((t) => { // Přičtení efektů jednotlivých toppingů
       const e = TOPPING_EFFECTS[t.type] || {};
       const scale = t.scale || 1;
       base.hunger += (e.hunger || 0) * scale / 5;
@@ -95,18 +98,18 @@ export const PizzaModel = {
     });
 
     const toppingTypes = new Set(toppings.map((t) => t.type));
-    const matched = SPECIAL_RECIPES.filter((recipe) =>
+    const matched = SPECIAL_RECIPES.filter((recipe) => // Výpočet bonusů ze speciálních receptů
       recipe.required.every((type) => toppingTypes.has(type))
     );
 
     let bonus = { hunger: 0, clean: 0, energy: 0 };
-    matched.forEach((recipe) => {
+    matched.forEach((recipe) => { // Přičtení bonusů
       bonus.hunger += recipe.bonus.hunger || 0;
       bonus.clean += recipe.bonus.clean || 0;
       bonus.energy += recipe.bonus.energy || 0;
     });
 
-    return {
+    return { // Výsledné statistiky
       base,
       bonus,
       total: {
@@ -118,11 +121,9 @@ export const PizzaModel = {
     };
   },
 
-  calculateBakeResult(finalTime, duration) {
+  calculateBakeResult(finalTime, duration) { // Výpočet výsledku pečení
     const TARGET_CENTER = Math.floor(duration * 0.5); 
     const TARGET_HALF_WINDOW = 1.5;
-
-    // Zone boundaries
     const undercooked_end = TARGET_CENTER - TARGET_HALF_WINDOW; 
     const perfect_start_inner = TARGET_CENTER - (TARGET_HALF_WINDOW * 0.5); 
     const perfect_end_inner = TARGET_CENTER + (TARGET_HALF_WINDOW * 0.5); 
@@ -152,11 +153,11 @@ export const PizzaModel = {
     accuracy = Math.max(0, Math.min(1, accuracy));
     const score = Math.round(accuracy * 100);
 
-    // Pizza Color calculation
+    // Výpočet barvy pizzy na základě výsledku pečení
     const bakeProgress = Math.min(100, Math.round((finalTime / duration) * 100));
     const pizzaColor = `radial-gradient(circle at 40% 35%, hsl(${38 - bakeProgress * 0.15}, 80%, ${88 - bakeProgress * 0.2}%) 0%, hsl(${35 - bakeProgress * 0.13}, 80%, ${78 - bakeProgress * 0.18}%) 40%, hsl(${32 - bakeProgress * 0.1}, 75%, ${68 - bakeProgress * 0.15}%) 70%, hsl(${30 - bakeProgress * 0.08}, 70%, ${55 - bakeProgress * 0.12}%) 100%)`;
 
-    return {
+    return { // Výsledky pečení
       time: Number(finalTime.toFixed(1)),
       classification,
       score,
@@ -165,8 +166,7 @@ export const PizzaModel = {
     };
   },
 
-  // --- API Calls ---
-  async apiPreview(toppings) {
+  async apiPreview(toppings) { // Odeslání toppingů na backend pro náhled
     try {
       const res = await axios.post(`${API_URL}/pizza/preview`, { toppings });
       return res.data;
@@ -176,7 +176,7 @@ export const PizzaModel = {
     }
   },
 
-  async apiSave(payload) {
+  async apiSave(payload) { // Uložení pizzy na backend
     if (payload.toppings) {
       payload.toppings = payload.toppings.map(t => ({
         ...t,

@@ -1,7 +1,10 @@
+/*
+Controller Component: Breaker.jsx
+Author: Šimon Dufek
+*/
 import { BreakerModel } from "../models/breakerModel";
 
 export function createBreakerController(setGameState) {
-    // ... (zbytek proměnných: animationFrameId, throttling atd. zůstává stejný) ...
     let animationFrameId;
     let leftPressed = false;
     let rightPressed = false;
@@ -9,9 +12,8 @@ export function createBreakerController(setGameState) {
     let lastSaveTime = 0;
     const SAVE_INTERVAL = 1000;
 
-    const gameLoop = () => {
-        // ... (stejný kód gameLoop jako v předchozím kroku) ...
-        setGameState((prevState) => {
+    const gameLoop = () => { // Hlavní herní smyčka
+        setGameState((prevState) => { // Aktualizace herního stavu
             if (!prevState) return prevState;
 
             let nextState = prevState;
@@ -20,12 +22,12 @@ export function createBreakerController(setGameState) {
 
             nextState = BreakerModel.updatePhysics(nextState);
 
-            // Progress check
+            // Uložení postupu, pokud hráč odemkl nový svět
             if (nextState.maxUnlockedWorld > prevState.maxUnlockedWorld) {
                 BreakerModel.saveProgress(nextState.maxUnlockedWorld);
             }
 
-            // Save Score & Clear State on End
+            // Uložení skóre na server, pokud je hra u konce
             if ((nextState.gameOver || nextState.gameWon) && !scoreSaved) {
                 scoreSaved = true; 
                 BreakerModel.saveScoreServer(nextState.score).then(newHigh => {
@@ -36,7 +38,7 @@ export function createBreakerController(setGameState) {
                 BreakerModel.clearGameState();
             }
 
-            // Auto-save
+            // Pravidelné ukládání hry během hraní
             if (nextState.gameStarted && !nextState.gameOver && !nextState.gameWon) {
                 const now = Date.now();
                 if (now - lastSaveTime > SAVE_INTERVAL) {
@@ -49,11 +51,8 @@ export function createBreakerController(setGameState) {
         animationFrameId = requestAnimationFrame(gameLoop);
     };
 
-    return {
-        // ... (init, startGame, handleKeyDown, handleKeyUp, restart, cleanup zůstávají stejné) ...
-        
-        init: async () => {
-             // ... (kód init z předchozího kroku) ...
+    return { 
+        init: async () => { // Inicializace herního stavu při načtení aplikace
             scoreSaved = false; 
             const savedState = await BreakerModel.loadGameState();
             const [serverHighScore, settingsEnabled, serverProgress] = await Promise.all([
@@ -62,13 +61,13 @@ export function createBreakerController(setGameState) {
                 BreakerModel.fetchProgress()
             ]);
 
-            if (savedState) {
+            if (savedState) { // Obnovení uloženého stavu hry
                 setGameState({
                     ...savedState,
                     highScore: serverHighScore,
                     maxUnlockedWorld: Math.max(savedState.maxUnlockedWorld || 0, serverProgress)
                 });
-            } else {
+            } else { // Zahájení nové hry, pokud není uložený stav
                 let startState = BreakerModel.initGameLocal('NORMAL', 0, serverProgress); 
                 startState.gameStarted = false; 
                 setGameState({ 
@@ -81,16 +80,13 @@ export function createBreakerController(setGameState) {
             gameLoop();
         },
 
-        startGame: (difficulty, worldIndex = 0) => {
-            // ... (stejný kód startGame) ...
-             setGameState(prev => {
+        startGame: (difficulty, worldIndex = 0) => { // Zahájení nové hry s danou obtížností a světem
+             setGameState(prev => { // Uložení předchozího stavu pro zachování nastavení
                  const unlocked = prev ? prev.maxUnlockedWorld : 0;
                  BreakerModel.clearGameState();
                  const newState = BreakerModel.initGameLocal(difficulty, worldIndex, unlocked);
-                 
-                 // DŮLEŽITÉ: Přenášíme nastavení powerupů z menu do hry
-                 newState.powerUpsEnabled = prev.powerUpsEnabled; 
-                 
+                
+                 newState.powerUpsEnabled = prev.powerUpsEnabled;  
                  newState.highScore = prev.highScore;
                  newState.gameStarted = true;
                  BreakerModel.saveGameState(newState);
@@ -99,12 +95,12 @@ export function createBreakerController(setGameState) {
              scoreSaved = false;
         },
 
-        handleKeyDown: (e) => {
+        handleKeyDown: (e) => { // Zpracování stisků kláves pro pohyb pálky
             if (e.key === "Right" || e.key === "ArrowRight" || e.key === "d") rightPressed = true;
             else if (e.key === "Left" || e.key === "ArrowLeft" || e.key === "a") leftPressed = true;
         },
 
-        handleKeyUp: (e) => {
+        handleKeyUp: (e) => { // Zpracování uvolnění kláves pro zastavení pálky
             if (e.key === "Right" || e.key === "ArrowRight" || e.key === "d") rightPressed = false;
             else if (e.key === "Left" || e.key === "ArrowLeft" || e.key === "a") leftPressed = false;
             else if (e.code === "Space" || e.key === " ") {
@@ -117,11 +113,10 @@ export function createBreakerController(setGameState) {
             }
         },
 
-        restart: () => {
-             // ... (stejný kód restart) ...
+        restart: () => { // Restartování hry
             scoreSaved = false;
             BreakerModel.clearGameState();
-            setGameState(prev => {
+            setGameState(prev => { // Zachování nastavení z předchozí hry
                 const currentDiff = prev.difficulty || 'NORMAL';
                 const currentWorld = prev.worldIndex || 0;
                 const unlocked = prev.maxUnlockedWorld || 0;
@@ -131,16 +126,16 @@ export function createBreakerController(setGameState) {
                 newState.gameStarted = true; 
                 return newState;
             });
-            BreakerModel.fetchStats().then(serverHighScore => {
+            BreakerModel.fetchStats().then(serverHighScore => { // Aktualizace skóre ze serveru
                  setGameState(prev => ({ ...prev, highScore: serverHighScore }));
             });
         },
 
-        cleanup: () => {
+        cleanup: () => { // Vyčištění při odchodu z komponenty
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
         },
 
-        togglePowerups: () => {
+        togglePowerups: () => { // Přepínání nastavení power-upů
             setGameState(prev => {
                 const newValue = !prev.powerUpsEnabled;
                 BreakerModel.saveSettings(newValue);

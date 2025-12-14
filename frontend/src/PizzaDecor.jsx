@@ -1,3 +1,7 @@
+/*
+View Component: PizzaDecor.jsx
+Author: Šimon Dufek
+*/
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from './meta_components/Header';
@@ -5,7 +9,7 @@ import { PizzaModel, PALETTE, SPECIAL_RECIPES } from './models/pizzaModel';
 import { createDecorController } from './controllers/pizzaController';
 import './styles/PizzaDecor.css';
 
-export default function PizzaDecor() {
+export default function PizzaDecor() { // Hlavní komponenta pro dekoraci pizzy
   const navigate = useNavigate();
   const [toppings, setToppings] = useState([]);
   const [dragging, setDragging] = useState(null);
@@ -13,11 +17,11 @@ export default function PizzaDecor() {
 
   const ctrl = createDecorController(toppings, setToppings, navigate);
 
-  useEffect(() => {
+  useEffect(() => { // Načtení uložených toppingů při načtení komponenty
     ctrl.load();
   }, []);
 
-  useEffect(() => {
+  useEffect(() => { // Ovladače pro přetahování toppingů
     const onMove = (ev) => {
       if (!dragging) return;
       const pizza = pizzaRef.current;
@@ -29,7 +33,7 @@ export default function PizzaDecor() {
       ctrl.updateToppingPosition(dragging.id, px, py);
     };
 
-    const onUp = () => {
+    const onUp = () => { // Dokončení přetahování
       if (dragging) {
         ctrl.finalizeDrag();
         setDragging(null);
@@ -38,15 +42,15 @@ export default function PizzaDecor() {
 
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
-    return () => {
+    return () => { // Vyčištění event listenerů
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     };
   }, [dragging, toppings]);
 
-  // View Calculations
   const stats = PizzaModel.calculateStats(toppings);
 
+  // Hlavní render komponenty
   return (
     <div>
       <Header title="Pizza Decor" onClose={() => navigate('/')} />
@@ -56,6 +60,7 @@ export default function PizzaDecor() {
           <div className="orders-scroll">
             {SPECIAL_RECIPES.map((recipe) => {
               const isMatched = stats.matchedRecipes.some(r => r.id === recipe.id);
+              {/* Zobrazení jednotlivých receptů */}
               return (
                 <div key={recipe.id} className={`order-ticket ${isMatched ? 'matched' : ''}`}>
                   <div className="ticket-header">
@@ -79,11 +84,13 @@ export default function PizzaDecor() {
             })}
           </div>
         </div>
-
+        
+        {/* Hlavní oblast pro dekoraci pizzy */}
         <div className="pizza-page">
           <aside className="palette">
             <h3>Palette</h3>
             <div className="palette-list">
+              {/* Zobrazení dostupných toppingů */}
               {PALETTE.map((p) => (
                 <button key={p.type} className="palette-item" onClick={() => ctrl.addTopping(p)}>
                   <span className="emoji">{p.emoji}</span>
@@ -91,11 +98,13 @@ export default function PizzaDecor() {
                 </button>
               ))}
             </div>
+            {/* Akční tlačítka pro vyčištění a přechod na pečení */}
             <div className="palette-actions">
               <button onClick={() => ctrl.clear()}>Clear</button>
               <button onClick={() => ctrl.startBaking()}>Bake</button>
             </div>
 
+            {/* Zobrazení efektů pizzy */}
             <div className="effects-panel">
               <h4>Effects</h4>
               <div className="effect-item">
@@ -113,9 +122,11 @@ export default function PizzaDecor() {
             </div>
           </aside>
 
+          {/* Oblast pizzy s toppingy */}
           <main className="pizza-area-wrapper">
             <div className="pizza-area" ref={pizzaRef}>
               <div className="pizza-base" />
+              {/* Zobrazení toppingů na pizze */}
               {toppings.map((t) => (
                 <div
                   key={t.id}
