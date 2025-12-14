@@ -259,6 +259,64 @@ def pinball_remove_item():
     result = remove_pinball_item(ADMIN_ID, item_id, price)
     return jsonify(result)
 
+# --- WALLBALL ENDPOINTS ---
+
+@app.route('/api/v1/wallball/progress', methods=['GET'])
+def get_wallball_progress_api():
+    level = get_wallball_progress_db(ADMIN_ID)
+    return jsonify({"max_unlocked_level": level})
+
+@app.route('/api/v1/wallball/complete_level', methods=['POST'])
+def complete_wallball_level_api():
+    data = request.json
+    completed_level_id = data.get('level_id')
+    
+    if not completed_level_id:
+        return jsonify({"success": False}), 400
+
+    # Odemkneme level + 1
+    new_max = update_wallball_progress_db(ADMIN_ID, completed_level_id + 1)
+    
+    return jsonify({
+        "success": True, 
+        "next_level_unlocked": True, # Zjednodušeno
+        "max_unlocked_level": new_max
+    })
+
+@app.route('/api/v1/wallball/level_state/<int:level_id>', methods=['GET'])
+def get_wallball_level_state_api(level_id):
+    pieces = get_wallball_level_pieces(ADMIN_ID, level_id)
+    return jsonify({"pieces": pieces})
+
+@app.route('/api/v1/wallball/place_piece', methods=['POST'])
+def place_wallball_piece_api():
+    data = request.get_json(force=True)
+    level_id = data.get("level_id")
+    piece_type = data.get("type")
+    col = data.get("col")
+    row = data.get("row")
+    
+    add_wallball_piece(ADMIN_ID, level_id, piece_type, col, row)
+    return jsonify({"success": True})
+
+@app.route('/api/v1/wallball/remove_piece', methods=['POST'])
+def remove_wallball_piece_api():
+    data = request.get_json(force=True)
+    level_id = data.get("level_id")
+    col = data.get("col")
+    row = data.get("row")
+    
+    remove_wallball_piece(ADMIN_ID, level_id, col, row)
+    return jsonify({"success": True})
+
+@app.route('/api/v1/wallball/reset_level', methods=['POST'])
+def reset_wallball_level_api():
+    data = request.get_json(force=True)
+    level_id = data.get("level_id")
+    
+    clear_wallball_level(ADMIN_ID, level_id)
+    return jsonify({"success": True})
+
 # --- BRICK BREAKER ENDPOINTS ---
 
 @app.route("/api/breaker/stats", methods=["GET"])
@@ -295,35 +353,7 @@ def breaker_progress_post():
     world_index = int(data.get("worldIndex", 0))
     return jsonify(update_breaker_progress(ADMIN_ID, world_index))
 
-wallball_state = {
-    "max_unlocked_level": 1
-}
-
-@app.route('/api/v1/wallball/progress', methods=['GET'])
-def get_wallball_progress():
-    return jsonify(wallball_state)
-
-@app.route('/api/v1/wallball/complete_level', methods=['POST'])
-def complete_wallball_level():
-    data = request.json
-    completed_level_id = data.get('level_id')
-    
-    if not completed_level_id:
-        return jsonify({"success": False, "error": "Missing level_id"}), 400
-
-    current_max = wallball_state["max_unlocked_level"]
-    next_level_unlocked = False
-
-    if completed_level_id == current_max:
-        wallball_state["max_unlocked_level"] = current_max + 1
-        next_level_unlocked = True
-        print(f"Wallball: Hráč dokončil level {completed_level_id}, odemykám {current_max + 1}")
-    
-    return jsonify({
-        "success": True, 
-        "next_level_unlocked": next_level_unlocked,
-        "max_unlocked_level": wallball_state["max_unlocked_level"]
-    })
+# --- PIZZA ENDPOINTS ---
 
 @app.route("/pizza/save", methods=["POST"])
 def pizza_save():

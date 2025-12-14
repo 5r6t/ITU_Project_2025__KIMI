@@ -104,12 +104,32 @@ def init_db():
         """)
 
         cur.execute("""
+            CREATE TABLE IF NOT EXISTS WallballProgress (
+                user_id INTEGER PRIMARY KEY,
+                max_unlocked_level INTEGER DEFAULT 1,
+                FOREIGN KEY (user_id) REFERENCES User(user_id)
+            );
+        """)
+
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS SavedPizza (
                 pizza_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 pizza_name TEXT,
                 pizza_data TEXT,
                 user_id INTEGER,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES User(user_id)
+            );
+        """)
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS WallballLevelState (
+                piece_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                level_id INTEGER,
+                type TEXT NOT NULL,
+                col INTEGER NOT NULL,
+                row INTEGER NOT NULL,
                 FOREIGN KEY (user_id) REFERENCES User(user_id)
             );
         """)
@@ -140,6 +160,8 @@ def destroy():
         "Ingredient",
         "Pinball",
         "PinballItem",
+        "WallballProgress",
+        "WallballLevelState",
         "User",
         "BrickBreaker",
         "SavedPizza"
@@ -550,6 +572,67 @@ def remove_pinball_item(user_id, item_id, refund_price):
             cur.execute("SELECT money FROM Pinball WHERE user_id=?", (user_id,))
             return {"success": True, "money": cur.fetchone()[0]}
         return {"success": False}
+
+# --- WALLBALL FUNKCE ---
+
+def ensure_wallball_progress(user_id):
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("INSERT OR IGNORE INTO WallballProgress (user_id) VALUES (?)", (user_id,))
+
+def get_wallball_progress_db(user_id):
+    ensure_wallball_progress(user_id)
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("SELECT max_unlocked_level FROM WallballProgress WHERE user_id=?", (user_id,))
+        row = cur.fetchone()
+        return row[0] if row else 1
+
+def update_wallball_progress_db(user_id, level_id):
+    ensure_wallball_progress(user_id)
+    with connect() as con:
+        cur = con.cursor()
+        # Aktualizujeme jen pokud je nový level vyšší než současný
+        cur.execute("""
+            UPDATE WallballProgress 
+            SET max_unlocked_level = ? 
+            WHERE user_id=? AND ? > max_unlocked_level
+        """, (level_id, user_id, level_id))
+        
+    return get_wallball_progress_db(user_id)
+
+def get_wallball_level_pieces(user_id, level_id):
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("""
+            SELECT type, col, row 
+            FROM WallballLevelState 
+            WHERE user_id=? AND level_id=?
+        """, (user_id, level_id))
+        rows = cur.fetchall()
+        return [{"type": r[0], "col": r[1], "row": r[2]} for r in rows]
+
+def add_wallball_piece(user_id, level_id, piece_type, col, row):
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("""
+            INSERT INTO WallballLevelState (user_id, level_id, type, col, row)
+            VALUES (?, ?, ?, ?, ?)
+        """, (user_id, level_id, piece_type, col, row))
+        return True
+
+def remove_wallball_piece(user_id, level_id, col, row):
+    with connect() as con:
+        con.execute("""
+            DELETE FROM WallballLevelState 
+            WHERE user_id=? AND level_id=? AND col=? AND row=?
+        """, (user_id, level_id, col, row))
+        return True
+
+def clear_wallball_level(user_id, level_id):
+    with connect() as con:
+        con.execute("DELETE FROM WallballLevelState WHERE user_id=? AND level_id=?", (user_id, level_id))
+        return True
 
 # --- FUNKCE PRO BRICK BREAKER ---
 

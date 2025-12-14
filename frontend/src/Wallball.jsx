@@ -7,7 +7,7 @@ import './styles/Wallball.css';
 import { LEVELS } from "./wallball_levels";
 import confetti from 'canvas-confetti';
 
-// ... (Konstanty a helpery zůstávají beze změny) ...
+// Konstanty
 const CELL_SIZE = 120;
 const WALL_COLOR = '#dddddd';
 const START_COLOR = '#00ff00';
@@ -15,7 +15,7 @@ const GOAL_COLOR = '#111111';
 const GOAL_OUTLINE_COLOR = '#888888';
 const PLAYER_PIECE_COLOR = '#0088ff';
 
-// ... (getPos, createPieceBody, renderGrid, PieceIcon, LevelMenu - VŠE STEJNÉ) ...
+// --- Pomocné funkce (stejné jako dříve) ---
 const getPos = (col, row) => {
     return { x: col * CELL_SIZE + (CELL_SIZE / 2), y: row * CELL_SIZE + (CELL_SIZE / 2) };
 };
@@ -30,31 +30,13 @@ const createPieceBody = (x, y, type, size, color) => {
     }
 };
 
-// Efekt konfet vystřelujících ze stran
 const triggerWinConfetti = () => {
     const duration = 2000;
     const end = Date.now() + duration;
-
     (function frame() {
-        // Vystřelíme dvě salvy - jednu zleva, jednu zprava
-        confetti({
-            particleCount: 5,
-            angle: 60,
-            spread: 55,
-            origin: { x: 0, y: 0.6 }, // Levá strana
-            colors: ['#27ae60', '#2ecc71', '#f1c40f'] // Zelená a zlatá
-        });
-        confetti({
-            particleCount: 5,
-            angle: 120,
-            spread: 55,
-            origin: { x: 1, y: 0.6 }, // Pravá strana
-            colors: ['#27ae60', '#2ecc71', '#f1c40f']
-        });
-
-        if (Date.now() < end) {
-            requestAnimationFrame(frame);
-        }
+        confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0, y: 0.6 }, colors: ['#27ae60', '#2ecc71', '#f1c40f'] });
+        confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1, y: 0.6 }, colors: ['#27ae60', '#2ecc71', '#f1c40f'] });
+        if (Date.now() < end) requestAnimationFrame(frame);
     }());
 };
 
@@ -68,6 +50,7 @@ const renderGrid = () => {
     }
     return cells;
 };
+
 const PieceIcon = ({ type, color }) => {
     const s = 34; 
     const svgProps = { width: s, height: s, viewBox: `0 0 ${s} ${s}`, style: { filter: 'drop-shadow(2px 2px 2px rgba(0,0,0,0.5))' } };
@@ -78,6 +61,7 @@ const PieceIcon = ({ type, color }) => {
         default: return <div style={{width: s, height: s, background: color}}></div>;
     }
 };
+
 const LevelMenu = ({ isOpen, onClose, levels, maxUnlocked, currentLevel, onSelectLevel }) => {
     if (!isOpen) return null;
     return (
@@ -98,6 +82,10 @@ const LevelMenu = ({ isOpen, onClose, levels, maxUnlocked, currentLevel, onSelec
     );
 };
 
+// =============================================================================
+// HLAVNÍ KOMPONENTA
+// =============================================================================
+
 export default function Wallball() {
     const navigate = useNavigate();
     const sceneRef = useRef(null);
@@ -107,17 +95,22 @@ export default function Wallball() {
     const [level, setLevel] = useState(1);
     const [maxUnlockedLevel, setMaxUnlockedLevel] = useState(1);
     const [difficulty, setDifficulty] = useState("Lehká");
-    const [description, setDescription] = useState("Úvodní level - dostaň míček dolů.");
+    const [description, setDescription] = useState("Popis...");
     const [isPlaying, setIsPlaying] = useState(false);
     const [showLevelMenu, setShowLevelMenu] = useState(false);
     
-    const controller = useRef(createWallballController(setLevel, setMaxUnlockedLevel, setDifficulty, setDescription)).current;
-    const [currentLevelConfig, setCurrentLevelConfig] = useState(null);
-    
+    // Stav pro umístěné dílky (nyní plněn i z databáze)
     const [placedPieces, setPlacedPieces] = useState([]);
     const placedPiecesRef = useRef([]);
 
-    // Načtení a Setup Fyziky (STEJNÉ)
+    // 1. ZMĚNA: Předáváme setPlacedPieces do controlleru
+    const controller = useRef(
+        createWallballController(setLevel, setMaxUnlockedLevel, setDifficulty, setDescription, setPlacedPieces)
+    ).current;
+    
+    const [currentLevelConfig, setCurrentLevelConfig] = useState(null);
+
+    // Inicializace hry
     useEffect(() => {
         const loadGame = async () => {
              const unlocked = await controller.init();
@@ -126,23 +119,37 @@ export default function Wallball() {
         loadGame();
     }, []);
 
-    const changeLevel = (levelId) => {
-        const config = controller.loadLevel(levelId);
-        if (config) setCurrentLevelConfig(config);
+    // 2. ZMĚNA: Async funkce pro změnu levelu (čeká na DB)
+    const changeLevel = async (levelId) => {
+        const config = await controller.loadLevel(levelId);
+        if (config) {
+            setCurrentLevelConfig(config);
+        }
     };
 
+    // --- SETUP FYZIKY A OBNOVENÍ DÍLKŮ ---
     useEffect(() => {
         if (!currentLevelConfig) return;
+
         const width = 600; const height = 720;
         const engine = engineRef.current; const world = engine.world;
         engine.gravity.y = 1; 
 
+        // Vyčistit svět
         Composite.clear(world); 
-        setIsPlaying(false); setPlacedPieces([]); placedPiecesRef.current = []; ballBodyRef.current = null;
+        
+        // Reset stavů
+        setIsPlaying(false);
+        ballBodyRef.current = null;
+        
+        // Poznámka: placedPiecesRef vyčistíme, ale State placedPieces NE, 
+        // protože v něm už jsou data načtená controllerem z DB (type, col, row).
+        placedPiecesRef.current = [];
 
         const render = Render.create({ element: sceneRef.current, engine: engine, options: { width, height, wireframes: false, background: 'transparent' } });
         const gameObjects = [];
 
+        // Generování zdí, míčku a cíle (beze změny)
         if (currentLevelConfig.walls) {
             currentLevelConfig.walls.forEach(w => {
                 const pos = getPos(w.col, w.row);
@@ -162,6 +169,31 @@ export default function Wallball() {
         gameObjects.push(Bodies.rectangle(-10, height/2, 20, height, { isStatic: true }), Bodies.rectangle(width+10, height/2, 20, height, { isStatic: true }), Bodies.rectangle(width/2, height+100, width, 100, { isStatic: true, isSensor: true, label: 'floor', render: {fillStyle: 'transparent'} }));
         Composite.add(world, gameObjects);
 
+        // --- 3. ZMĚNA: Obnovení dílků z DB do fyziky ---
+        // 'placedPieces' nyní obsahuje data z DB načtená controllerem, ale chybí jim fyzická tělesa.
+        // Tady je vytvoříme.
+        const restoredPieces = placedPieces.map(p => {
+            const pos = getPos(p.col, p.row);
+            // Vytvoříme fyzické těleso
+            const body = createPieceBody(pos.x, pos.y, p.type, CELL_SIZE, PLAYER_PIECE_COLOR);
+            Composite.add(world, body);
+            
+            // Vrátíme objekt s reálným bodyId (dosud tam bylo jen 'temp-id')
+            return { 
+                col: p.col, 
+                row: p.row, 
+                type: p.type, 
+                bodyId: body.id 
+            };
+        });
+
+        // Aktualizujeme State i Ref s reálnými ID, aby fungoval drag & drop a mazání
+        if (restoredPieces.length > 0) {
+            setPlacedPieces(restoredPieces);
+            placedPiecesRef.current = restoredPieces;
+        }
+
+        // Kolize
         const handleCollision = (event) => {
             event.pairs.forEach((pair) => {
                 const { bodyA, bodyB } = pair;
@@ -180,45 +212,31 @@ export default function Wallball() {
         Runner.run(runner, engine);
 
         return () => { Render.stop(render); Runner.stop(runner); Events.off(engine, 'collisionStart', handleCollision); if (render.canvas) render.canvas.remove(); };
-    }, [currentLevelConfig]);
+    }, [currentLevelConfig]); // Spustí se při změně levelu
 
-    // --- UPRAVENO: Funkce pro zpracování výhry ---
+    // --- LOGIKA HRY ---
+
     const handleWin = async () => {
-        // 1. Zastavit míček a uspat ho (Zamrznutí času)
         if (ballBodyRef.current) {
             Body.setVelocity(ballBodyRef.current, { x: 0, y: 0 });
             Body.setAngularVelocity(ballBodyRef.current, 0);
             Sleeping.set(ballBodyRef.current, true);
         }
-        
-        // 2. Oznámit backendu hotovo (asynchronně)
         const success = await controller.levelCompleted(level);
-        
         if (success) {
-            // 3. Spustíme vizuální efekt
             triggerWinConfetti();
-
-            // 4. Počkáme 2 sekundy a pak přejdeme dál
             setTimeout(() => {
                 const nextLevelId = level + 1;
                 const nextLevelExists = LEVELS.find(l => l.id === nextLevelId);
-                
-                if (nextLevelExists) {
-                    // Reset dílků a přechod na další level
-                    handleReset(true); 
-                    changeLevel(nextLevelId);
-                } else {
-                    // Konec hry (všechny levely hotové)
-                    // Můžeme spustit velký ohňostroj nebo otevřít menu
-                    confetti({ particleCount: 500, spread: 100, origin: { y: 0.6 } }); // Finální výbuch
-                    handleReset(true);
-                    setShowLevelMenu(true); // Otevřeme menu, ať vidí, že má vše hotovo
-                }
-            }, 2000); // 2000 ms = 2 sekundy delay
+                if (nextLevelExists) { handleReset(true); changeLevel(nextLevelId); } 
+                else { confetti({ particleCount: 500, spread: 100, origin: { y: 0.6 } }); handleReset(true); setShowLevelMenu(true); }
+            }, 2000);
         }
     };
 
     const handleStart = () => { if (!ballBodyRef.current) return; Sleeping.set(ballBodyRef.current, false); Body.setVelocity(ballBodyRef.current, { x: 0, y: 0.1 }); setIsPlaying(true); };
+
+    // 4. ZMĚNA: Reset nyní volá controller pro vymazání DB
     const handleReset = (fullReset = false) => {
         if (ballBodyRef.current && currentLevelConfig) {
             Body.setVelocity(ballBodyRef.current, { x: 0, y: 0 }); Body.setAngularVelocity(ballBodyRef.current, 0);
@@ -227,71 +245,102 @@ export default function Wallball() {
         }
         setIsPlaying(false);
         if (fullReset) {
+            // Smazat z DB
+            controller.resetLevel(level);
+
+            // Smazat vizuálně
             placedPiecesRef.current.forEach(p => { const body = Composite.get(engineRef.current.world, p.bodyId, 'body'); if (body) Composite.remove(engineRef.current.world, body); });
             setPlacedPieces([]); placedPiecesRef.current = [];
         }
     };
 
-    // --- DRAG & DROP LOGIKA (UPRAVENO) ---
+    // --- INTERAKTIVITA (Place & Remove s voláním Controlleru) ---
 
-    // A) Začátek tažení z INVENTÁŘE (type) NEBO z GRIDU (existingId)
+    // Funkce pro položení dílku
+    const placePiece = (col, row, type) => {
+        // A) Uložit na backend
+        controller.placePiece(level, type, col, row);
+
+        // B) Provést vizuální změnu (Optimistické UI)
+        const pos = getPos(col, row);
+        const body = createPieceBody(pos.x, pos.y, type, CELL_SIZE, PLAYER_PIECE_COLOR);
+        Composite.add(engineRef.current.world, body);
+        const newPiece = { col, row, type, bodyId: body.id };
+        
+        setPlacedPieces(prev => [...prev, newPiece]);
+        placedPiecesRef.current.push(newPiece);
+    };
+
+    // Smazání pravým tlačítkem
+    const handleRightClick = (e) => {
+        e.preventDefault(); if (isPlaying) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const col = Math.floor((e.clientX - rect.left) / CELL_SIZE);
+        const row = Math.floor((e.clientY - rect.top) / CELL_SIZE);
+        
+        const pieceToRemove = placedPiecesRef.current.find(p => p.col === col && p.row === row);
+        if (pieceToRemove) {
+            // A) Smazat z backendu
+            controller.removePiece(level, col, row);
+
+            // B) Smazat vizuálně
+            const body = Composite.get(engineRef.current.world, pieceToRemove.bodyId, 'body');
+            if (body) Composite.remove(engineRef.current.world, body);
+            
+            setPlacedPieces(prev => prev.filter(p => p.bodyId !== pieceToRemove.bodyId));
+            placedPiecesRef.current = placedPiecesRef.current.filter(p => p.bodyId !== pieceToRemove.bodyId);
+        }
+    };
+
+    // Drag & Drop Handlery
     const handleDragStart = (e, type, existingId = null) => {
         if (isPlaying) { e.preventDefault(); return; }
-        
         e.dataTransfer.setData("pieceType", type);
-        
-        // Pokud táhneme existující dílek, uložíme si jeho ID
         if (existingId) {
             e.dataTransfer.setData("existingId", existingId);
-            // Vizuální efekt - při tažení zprůhledníme
             e.target.style.opacity = '0.5';
         }
     };
 
-    // B) Drop nad GRIDEM (Umístění / Přesun)
     const handleDrop = (e) => {
         e.preventDefault();
         if (isPlaying) return;
-
         const type = e.dataTransfer.getData("pieceType");
-        const existingId = e.dataTransfer.getData("existingId"); // Může být null
-
+        const existingId = e.dataTransfer.getData("existingId");
         if (!type || !currentLevelConfig) return;
 
         const rect = e.currentTarget.getBoundingClientRect();
         const col = Math.floor((e.clientX - rect.left) / CELL_SIZE);
         const row = Math.floor((e.clientY - rect.top) / CELL_SIZE);
 
-        // 1. Validace pozice
         if (col < 0 || col >= 5 || row < 0 || row >= 6) return;
         if (currentLevelConfig.walls?.some(w => w.col === col && w.row === row)) return;
         if ((currentLevelConfig.start.col === col && currentLevelConfig.start.row === row) || 
             (currentLevelConfig.goal.col === col && currentLevelConfig.goal.row === row)) return;
         
-        // Pokud tam už něco je (kromě toho, co zrovna přesouváme)
         const isOccupied = placedPieces.some(p => p.col === col && p.row === row && p.bodyId !== Number(existingId));
         if (isOccupied) return;
 
-        // 2. Logika PŘESUNU (Existing)
+        // Logika PŘESUNU (Existing)
         if (existingId) {
             const id = Number(existingId);
-            // Najdeme starý dílek
             const oldPiece = placedPiecesRef.current.find(p => p.bodyId === id);
             
             if (oldPiece) {
-                // Odstraníme staré fyzické těleso
+                // Smazat starý z DB i světa
+                controller.removePiece(level, oldPiece.col, oldPiece.row);
+                
                 const oldBody = Composite.get(engineRef.current.world, oldPiece.bodyId, 'body');
                 if (oldBody) Composite.remove(engineRef.current.world, oldBody);
-
-                // Odstraníme starý záznam ze stavu
+                
                 setPlacedPieces(prev => prev.filter(p => p.bodyId !== id));
                 placedPiecesRef.current = placedPiecesRef.current.filter(p => p.bodyId !== id);
                 
-                // Vytvoříme nový na novém místě (jako by to byl nový drop)
+                // Vytvořit nový na novém místě (včetně DB save)
                 placePiece(col, row, type);
             }
         } 
-        // 3. Logika NOVÉHO kusu (Inventory)
+        // Logika NOVÉHO kusu
         else {
             const inventoryItem = currentLevelConfig.inventory.find(i => i.type === type);
             const placedCount = placedPieces.filter(p => p.type === type).length;
@@ -301,21 +350,21 @@ export default function Wallball() {
         }
     };
 
-    // C) Drop MIMO GRID (Vrácení do inventáře)
+    // Global Drop (vyhození mimo plochu = smazání)
     const handleGlobalDrop = (e) => {
         e.preventDefault();
         if (isPlaying) return;
-
         const existingId = e.dataTransfer.getData("existingId");
         
-        // Pokud jsme pustili existující dílek mimo herní plochu (wb-game-wrapper)
-        // Poznáme to tak, že target není uvnitř wb-game-wrapper
         if (existingId && !e.target.closest('.wb-game-wrapper')) {
             const id = Number(existingId);
             const pieceToRemove = placedPiecesRef.current.find(p => p.bodyId === id);
             
             if (pieceToRemove) {
-                // Smažeme ho (vrátí se tím do inventáře, protože se sníží počet placedPieces)
+                // Smazat z DB
+                controller.removePiece(level, pieceToRemove.col, pieceToRemove.row);
+
+                // Smazat vizuálně
                 const body = Composite.get(engineRef.current.world, pieceToRemove.bodyId, 'body');
                 if (body) Composite.remove(engineRef.current.world, body);
 
@@ -325,43 +374,14 @@ export default function Wallball() {
         }
     };
 
-    const placePiece = (col, row, type) => {
-        const pos = getPos(col, row);
-        const body = createPieceBody(pos.x, pos.y, type, CELL_SIZE, PLAYER_PIECE_COLOR);
-        Composite.add(engineRef.current.world, body);
-        const newPiece = { col, row, type, bodyId: body.id };
-        setPlacedPieces(prev => [...prev, newPiece]);
-        placedPiecesRef.current.push(newPiece);
-    };
-
-    const handleRightClick = (e) => { /* ... stejné jako předtím ... */
-        e.preventDefault(); if (isPlaying) return;
-        const rect = e.currentTarget.getBoundingClientRect();
-        const col = Math.floor((e.clientX - rect.left) / CELL_SIZE);
-        const row = Math.floor((e.clientY - rect.top) / CELL_SIZE);
-        const pieceToRemove = placedPiecesRef.current.find(p => p.col === col && p.row === row);
-        if (pieceToRemove) {
-            const body = Composite.get(engineRef.current.world, pieceToRemove.bodyId, 'body');
-            if (body) Composite.remove(engineRef.current.world, body);
-            setPlacedPieces(prev => prev.filter(p => p.bodyId !== pieceToRemove.bodyId));
-            placedPiecesRef.current = placedPiecesRef.current.filter(p => p.bodyId !== pieceToRemove.bodyId);
-        }
-    };
-
+    // --- RENDER ---
     return (
-        <div 
-            style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}
-            onDragOver={(e) => e.preventDefault()} // Povolíme globální drop
-            onDrop={handleGlobalDrop}              // Globální drop pro mazání
-        >
+        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }} onDragOver={(e) => e.preventDefault()} onDrop={handleGlobalDrop}>
             <Header title="Wallball Puzzle" onClose={() => navigate("/")} />
-            
-            <LevelMenu 
-                isOpen={showLevelMenu} onClose={() => setShowLevelMenu(false)} levels={LEVELS} maxUnlocked={maxUnlockedLevel} currentLevel={level} onSelectLevel={changeLevel}
-            />
+            <LevelMenu isOpen={showLevelMenu} onClose={() => setShowLevelMenu(false)} levels={LEVELS} maxUnlocked={maxUnlockedLevel} currentLevel={level} onSelectLevel={changeLevel} />
 
             <div className="wallball-container">
-                {/* Levý panel */}
+                {/* Levý panel - Inventář */}
                 <div className="wb-left-panel">
                     <h3 style={{ textAlign: 'center', marginBottom: '15px' }}>Dílky</h3>
                     {currentLevelConfig && currentLevelConfig.inventory ? (
@@ -379,13 +399,13 @@ export default function Wallball() {
                     ) : ( <p>Načítání...</p> )}
                 </div>
 
-                {/* Prostřední panel */}
+                {/* Prostřední panel - Hra */}
                 <div className="wb-middle-panel">
                     <div className="wb-game-wrapper" onDragOver={(e) => e.preventDefault()} onDrop={handleDrop} onContextMenu={handleRightClick} style={{ borderColor: isPlaying ? '#27ae60' : '#555' }}>
                         <div className="wb-grid-background">{renderGrid()}</div>
                         <div ref={sceneRef} className="wb-canvas-overlay" />
                         
-                        {/* --- NOVÉ: Překryvná vrstva s "úchyty" pro existující dílky --- */}
+                        {/* Překryvná vrstva pro Drag & Drop existujících dílků */}
                         {placedPieces.map((piece) => {
                             const pos = getPos(piece.col, piece.row);
                             return (
@@ -393,7 +413,7 @@ export default function Wallball() {
                                     key={piece.bodyId}
                                     draggable={!isPlaying}
                                     onDragStart={(e) => handleDragStart(e, piece.type, piece.bodyId)}
-                                    onDragEnd={(e) => { e.target.style.opacity = '1'; }} // Vrátíme opacitu, pokud drop selhal
+                                    onDragEnd={(e) => { e.target.style.opacity = '1'; }}
                                     style={{
                                         position: 'absolute',
                                         left: pos.x - CELL_SIZE / 2,
@@ -401,17 +421,16 @@ export default function Wallball() {
                                         width: CELL_SIZE,
                                         height: CELL_SIZE,
                                         cursor: isPlaying ? 'default' : 'grab',
-                                        zIndex: 10 // Musí být nad Canvasem
+                                        zIndex: 10
                                     }}
                                     title="Přesuň mě nebo vyhoď pryč"
                                 />
                             );
                         })}
-
                     </div>
                 </div>
 
-                {/* Pravý panel */}
+                {/* Pravý panel - Ovládání */}
                 <div className="wb-right-panel">
                     <div className="wb-info-box"><h2>Level {level}</h2><p>Obtížnost: {difficulty}</p><p>{description}</p></div>
                     {!isPlaying ? ( <button className="wb-btn wb-btn-start" onClick={handleStart}>START ▶</button> ) : ( <button className="wb-btn wb-btn-reset" onClick={() => handleReset(false)}>STOP ■</button> )}

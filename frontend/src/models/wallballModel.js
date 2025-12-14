@@ -5,27 +5,50 @@ const API = axios.create({
 });
 
 export const WallballModel = {
-    // 1. Zjistíme, kam až se hráč dostal (např. při obnovení stránky)
     async getProgress() {
         try {
-            // Backend by měl vrátit např.: { max_unlocked_level: 3 }
             const res = await API.get("/wallball/progress");
             return res.data; 
         } catch (error) {
-            console.error("Nepodařilo se načíst progres, začínám od levelu 1", error);
-            return { max_unlocked_level: 1 }; // Fallback
+            console.error("Chyba progresu:", error);
+            return { max_unlocked_level: 1 };
         }
     },
 
-    // 2. Řekneme backendu, že hráč dokončil level
     async completeLevel(levelId) {
         try {
-            // Backend si poznačí, že levelId je hotový a odemkne levelId + 1
             const res = await API.post("/wallball/complete_level", { level_id: levelId });
-            return res.data; // { success: true, next_level_unlocked: true }
+            return res.data;
         } catch (error) {
-            console.error("Chyba při ukládání postupu:", error);
             return { success: false };
         }
+    },
+
+    // --- NOVÉ METODY ---
+
+    // Načte rozmístění dílků pro daný level
+    async getLevelState(levelId) {
+        try {
+            const res = await API.get(`/wallball/level_state/${levelId}`);
+            return res.data.pieces || [];
+        } catch (error) {
+            console.error("Chyba načítání level state:", error);
+            return [];
+        }
+    },
+
+    // Uloží dílek
+    async placePiece(levelId, type, col, row) {
+        await API.post("/wallball/place_piece", { level_id: levelId, type, col, row });
+    },
+
+    // Odstraní dílek
+    async removePiece(levelId, col, row) {
+        await API.post("/wallball/remove_piece", { level_id: levelId, col, row });
+    },
+
+    // Vymaže všechny dílky (při kompletním resetu)
+    async resetLevelState(levelId) {
+        await API.post("/wallball/reset_level", { level_id: levelId });
     }
 };
