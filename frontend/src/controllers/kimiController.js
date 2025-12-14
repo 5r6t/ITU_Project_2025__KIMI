@@ -1,11 +1,14 @@
 import { KimiModel } from "../models/kimiModel";
+import { withMood } from "../models/kimiMoodModel";
 
 export function createKimiController(setState) {
+    const applyState = (data) => setState(withMood(data));
+
     return {
-        load: async () => setState(await KimiModel.load()),
-        feed: async () => setState(await KimiModel.feed()),
-        clean: async () => setState(await KimiModel.clean()),
-        sleep: async () => setState(await KimiModel.sleep()),
-        exercise: async () => setState(await KimiModel.exercise())
+        load: async () => applyState(await KimiModel.load()),
+        feed: async () => applyState(await KimiModel.feed()),
+        clean: async () => applyState(await KimiModel.clean()),
+        sleep: async () => applyState(await KimiModel.sleep()),
+        exercise: async () => applyState(await KimiModel.exercise())
     };
 }

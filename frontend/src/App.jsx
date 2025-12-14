@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom"; 
 import { useNavigate } from "react-router-dom";
-import axios from "axios"; // Důležité: Import axiosu pro komunikaci s API
-
 import Header from "./meta_components/Header";
 import StatusBar from "./meta_components/StatusBar";
 import Inventory from "./Inventory"; 
 import { Scene } from "./meta_components/Scene";
+import KimiStatus from "./meta_components/KimiStatus";
 
 import { createKimiController } from "./controllers/kimiController";
 import { createSceneController } from "./controllers/sceneController";
+import { withMood } from "./models/kimiMoodModel";
+import { BreakerModel } from "./models/breakerModel";
 
 //import { useAchievements } from "./meta_components/AchievementContext";
 import trophy from "./assets/trophy.svg";
@@ -22,7 +23,9 @@ export default function App() {
   // NOVÉ: Stav pro Breaker Power-ups
   const [breakerPowerups, setBreakerPowerups] = useState(false);
 
-  const [kimi, setKimi] = useState({ hunger: 0, clean: 0, energy: 0 });
+  const [kimi, setKimi] = useState(() =>
+    withMood({ hunger: 0, clean: 0, energy: 0 })
+  );
 
   const ctrl = createKimiController(setKimi);
 
@@ -34,26 +37,31 @@ export default function App() {
     ctrl.load();
 
     // NOVÉ: Načtení nastavení Breaker power-upů při startu aplikace
-    axios.get("http://127.0.0.1:5000/api/breaker/powerups")
-         .then(res => {
-             // Nastavíme stav podle toho, co vrátí databáze
-             setBreakerPowerups(res.data.powerups_enabled);
-         })
-         .catch(err => console.error("Failed to load breaker settings:", err));
+    let isMounted = true;
+
+    BreakerModel.fetchSettings()
+      .then((enabled) => {
+        if (isMounted) setBreakerPowerups(Boolean(enabled));
+      })
+      .catch((err) => console.error("Failed to load breaker settings:", err));
+
+    return () => { isMounted = false; };
   }, []);
 
   // NOVÉ: Funkce pro přepínání power-upů a uložení na server
-  const toggleBreakerPowerups = () => {
+  const toggleBreakerPowerups = async () => {
       const newState = !breakerPowerups;
       setBreakerPowerups(newState); // Okamžitá vizuální změna
       
       // Odeslání změny na server
-      axios.post("http://127.0.0.1:5000/api/breaker/powerups", { enabled: newState })
-           .catch(err => {
-               console.error("Failed to save breaker settings:", err);
-               // V případě chyby vrátíme přepínač zpět
-               setBreakerPowerups(!newState);
-           });
+      try {
+        const savedState = await BreakerModel.saveSettings(newState);
+        setBreakerPowerups(Boolean(savedState));
+      } catch (err) {
+        console.error("Failed to save breaker settings:", err);
+        // V případě chyby vrátíme přepínač zpět
+        setBreakerPowerups(!newState);
+      }
   };
 
   const navigate = useNavigate();
@@ -80,6 +88,18 @@ export default function App() {
         <div className="scene card">
           <Scene controller={sceneCtrl} carouselItems={sceneCarouselItems} />
 
+          {/* <div className="kimi-overlay">
+            <img
+              src={kimi.moodImage}
+              alt={kimi.mood || "fox"}
+              className="kimi-overlay__img"
+            />
+            <div className="kimi-overlay__text">
+              <div className="kimi-overlay__label">Fox</div>
+              <div className="kimi-overlay__status">{kimi.moodText}</div>
+            </div>
+          </div> */}
+
           <div className="Games">
             
             {/* Sekce pro Brick Breaker */}
@@ -97,8 +117,13 @@ export default function App() {
         </div>
         
         <div className="stats card">
+          <KimiStatus
+            moodImage={kimi.moodImage}
+            mood={kimi.mood}
+            moodText={kimi.moodText}
+          />
           <StatusBar label="🍗 Hunger"  value={kimi.hunger} color="#4FA3FF" />
-          <StatusBar label="🧼 Clean"   value={kimi.clean} color="#6FD6B6" />
+          <StatusBar label="🧼 Clean"   value={kimi.clean}  color="#6FD6B6" />
           <StatusBar label="💤 Energy"  value={kimi.energy} color="#B58CFF" />
         </div>
 
@@ -106,7 +131,7 @@ export default function App() {
             <Inventory
               isOpen={true} 
               onClose={() => {}} 
-              onUpdateKimiState={setKimi}
+              onUpdateKimiState={(data) => setKimi(withMood(data))}
               isEmbedded={true} 
             />
         </div>
