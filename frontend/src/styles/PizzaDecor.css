@@ -1,3 +1,10 @@
+.size_limiter {
+  display: block;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
 .matched-recipes-list {
   background: linear-gradient(135deg, #ff6b9d 0%, #feca57 100%);
   border-radius: 6px;
@@ -84,7 +91,7 @@
   gap: 20px;
   padding: 20px;
   box-sizing: border-box;
-  min-height: 100vh;
+  align-items: flex-start;
 }
 
 .palette {
@@ -157,7 +164,7 @@
 
 .hint { font-size: 12px; color:#ddd; margin: 0; }
 
-.pizza-area-wrapper { flex: 1; display:flex; justify-content:center; align-items:center; min-height: 90vh; }
+.pizza-area-wrapper { flex: 1; display:flex; justify-content:center; align-items:flex-start; }
 .pizza-area { position: relative; width: min(720px, 70vw); height: min(720px, 70vw); }
 .pizza-base { position:absolute; inset:0; border-radius:50%; background: radial-gradient(circle at 40% 35%, #f8d9a0 0%, #f1c27d 40%, #d99b5e 70%, #b86f36 100%); box-shadow: inset 0 -10px 20px rgba(0,0,0,0.2); }
 .topping { position: absolute; cursor: grab; user-select: none; }
@@ -292,4 +299,3 @@
   background: rgba(243, 156, 18, 0.2);
   color: #d68910;
 }
-
