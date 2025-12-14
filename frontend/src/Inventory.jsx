@@ -149,7 +149,7 @@ export default function Inventory({ isOpen, onClose, onUpdateKimiState, isEmbedd
             
             <div className="panel-content">
                 {loading ? (
-                    <p className="loading-text">Načítání...</p>
+                    <p className="loading-text">Loading...</p>
                 ) : (
                     inventory.length > 0 ? (
                         <div className="inventory-grid">
@@ -163,7 +163,7 @@ export default function Inventory({ isOpen, onClose, onUpdateKimiState, isEmbedd
                             ))}
                         </div>
                     ) : (
-                        <p className="empty-text">Inventář je prázdný.</p>
+                        <p className="empty-text">Inventory is empty.</p>
                     )
                 )}
             </div>

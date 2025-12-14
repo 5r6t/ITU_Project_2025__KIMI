@@ -84,6 +84,11 @@ export const BreakerModel = {
         catch (e) { return false; }
     },
 
+    async saveSettings(enabled) {
+        const res = await axios.post(`${API_URL}/api/breaker/powerups`, { enabled });
+        return res.data.powerups_enabled;
+    },
+
     // NOVÉ: Načtení odemčených světů
     async fetchProgress() {
         try { return (await axios.get(`${API_URL}/api/breaker/progress`)).data.maxUnlockedWorld || 0; }

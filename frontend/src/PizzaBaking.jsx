@@ -15,7 +15,7 @@ export default function PizzaBaking() {
   const [pizzaName, setPizzaName] = useState('Moje Pizza');
   
   const intervalRef = useRef(null);
-  const DURATION = 20; // seconds
+  const DURATION = 10; // seconds
 
   const ctrl = createBakingController(navigate);
 

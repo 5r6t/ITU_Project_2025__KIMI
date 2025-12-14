@@ -1,0 +1,49 @@
+.kimi-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, rgba(80, 80, 80, 0.55), rgba(40, 40, 40, 0.75));
+  border: 1px solid #2f2f2f;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+.kimi-status__img {
+  width: clamp(92px, 26vw, 128px);
+  max-width: 100%;
+  max-height: 140px;
+  height: auto;
+  flex-shrink: 1;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));
+}
+
+.kimi-status__placeholder {
+  width: 82px;
+  height: 82px;
+  display: grid;
+  place-items: center;
+  font-size: 36px;
+  border-radius: 50%;
+  background: #2b2b2b;
+  border: 1px dashed #555;
+  color: #f3f3f3;
+}
+
+.kimi-status__text {
+  text-align: left;
+  color: #f1f1f1;
+}
+
+.kimi-status__label {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.kimi-status__message {
+  font-size: 0.95rem;
+  color: #cdd2ff;
+  opacity: 0.9;
+}
