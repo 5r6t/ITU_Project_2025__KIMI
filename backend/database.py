@@ -303,9 +303,16 @@ def create_default_achievements(user_id):
         ("Nap Time", 1),
 
         # Pinball achievements
-        ("Pinball Rich", 50),   # ID 5: Zisk 50 peněz
-        ("Pinball Wizard", 100),# ID 6: Rekord 100
-        ("Builder", 1)          # ID 7: Položení prvku
+        ("Pinball Rich", 50),    # ID 5: Zisk 50 peněz
+        ("Pinball Wizard", 100), # ID 6: Rekord 100
+        ("Pinball Builder", 1),  # ID 7: Položení prvku
+
+        # Wallball achievements
+        ("Wallball Noobie", 1), # ID 8: Dokončení prvního levelu
+        ("Wallball Novice", 1), # ID 9: Dokončení druhého levelu
+        ("Wallball Pro", 1),    # ID 10: Dokončení třetího levelu
+        ("Wallball Expert", 1), # ID 11: Dokončení čtvrtého levelu
+        ("Wallball Master", 1)  # ID 12: Dokončení pátého levelu
     ]
     with connect() as con:
         cur = con.cursor()
