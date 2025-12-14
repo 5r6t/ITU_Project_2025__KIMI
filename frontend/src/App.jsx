@@ -24,8 +24,6 @@ export default function App() {
 
   //const { completeAchievement } = useAchievements();
   
-  // NOVÉ: Stav pro Breaker Power-ups
-  const [breakerPowerups, setBreakerPowerups] = useState(false);
 
   const [kimi, setKimi] = useState(() =>
     withMood({ hunger: 0, clean: 0, energy: 0 })
@@ -39,34 +37,7 @@ export default function App() {
 
   useEffect(() => {
     ctrl.load();
-
-    // NOVÉ: Načtení nastavení Breaker power-upů při startu aplikace
-    let isMounted = true;
-
-    BreakerModel.fetchSettings()
-      .then((enabled) => {
-        if (isMounted) setBreakerPowerups(Boolean(enabled));
-      })
-      .catch((err) => console.error("Failed to load breaker settings:", err));
-
-    return () => { isMounted = false; };
   }, []);
-
-  // NOVÉ: Funkce pro přepínání power-upů a uložení na server
-  const toggleBreakerPowerups = async () => {
-      const newState = !breakerPowerups;
-      setBreakerPowerups(newState); // Okamžitá vizuální změna
-      
-      // Odeslání změny na server
-      try {
-        const savedState = await BreakerModel.saveSettings(newState);
-        setBreakerPowerups(Boolean(savedState));
-      } catch (err) {
-        console.error("Failed to save breaker settings:", err);
-        // V případě chyby vrátíme přepínač zpět
-        setBreakerPowerups(!newState);
-      }
-  };
 
   const navigate = useNavigate();
   const sceneCtrl = createSceneController({
@@ -91,18 +62,6 @@ export default function App() {
 
         <div className="scene card">
           <Scene controller={sceneCtrl} carouselItems={sceneCarouselItems} />
-
-          {/* <div className="kimi-overlay">
-            <img
-              src={kimi.moodImage}
-              alt={kimi.mood || "fox"}
-              className="kimi-overlay__img"
-            />
-            <div className="kimi-overlay__text">
-              <div className="kimi-overlay__label">Fox</div>
-              <div className="kimi-overlay__status">{kimi.moodText}</div>
-            </div>
-          </div> */}
         </div>
         
         <div className="stats card">

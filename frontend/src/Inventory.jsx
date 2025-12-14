@@ -87,7 +87,7 @@ function ItemCard({ item, onUseItem }) {
                 onClick={() => onUseItem(item.name)} 
                 disabled={item.quantity <= 0}
             >
-                Consume
+                Use
             </button>
         </div>
     );

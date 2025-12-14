@@ -1,5 +1,5 @@
 /*
-Achievements menu
+Achievements menu component
 Author: Jaroslav Mervart
 */
 import { useEffect, useState } from "react";
@@ -10,7 +10,7 @@ import { AchievementProvider, useAchievements } from "./meta_components/Achievem
 import "./styles/Achievements.css";
 
 function AchievementPageContent() {
-  const { completeAchievement, loadList } = useAchievements();
+  const { loadList } = useAchievements();
   const [achievements, setAchievements] = useState({ unlocked: [], locked: [] });
 
   const refresh = () => {
@@ -35,7 +35,6 @@ function AchievementPageContent() {
         ))}
       </AchievementBox>
 
-      <button onClick={() => {completeAchievement(1); refresh();}}>TEST -- Complete Achievement</button>
     </div>
   );
 }

@@ -38,7 +38,7 @@ function clampValue(v) {
   return Math.max(0, Math.min(100, Number(v)));
 }
 
-// Derive view-friendly mood info from the raw creature stats.
+// get mood info from the creature stats
 export function deriveMood(state = {}) {
   const hunger = clampValue(state.hunger);
   const clean = clampValue(state.clean);

@@ -538,5 +538,20 @@ def update_achievement(achvmnt_id, new_progress):
 
     return jsonify(updated)
 
+@app.route("/reset_achievements", methods=["POST"])
+def reset_achievements():
+    """Wipe and recreate achievements for the admin user."""
+    remove_all_achievements()
+    create_default_achievements(ADMIN_ID)
+
+    data = list_achievements(ADMIN_ID)
+    unlocked = []
+    locked = []
+
+    for each_id, name, progress, completed in data:
+        (unlocked if completed else locked).append(name)
+
+    return jsonify({"success": True, "unlocked": unlocked, "locked": locked})
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

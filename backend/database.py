@@ -568,6 +568,15 @@ def pinball_ball_lost(user_id):
         row = cur.fetchone()
         return {"score": row[0], "record": row[1], "money": row[2]}
 
+def reset_pinball_record(user_id):
+    ensure_pinball_row(user_id)
+    with connect() as con:
+        cur = con.cursor()
+        cur.execute("UPDATE Pinball SET score = 0, record = 0 WHERE user_id=?", (user_id,))
+        cur.execute("SELECT score, record, money FROM Pinball WHERE user_id=?", (user_id,))
+        row = cur.fetchone()
+        return {"score": row[0], "record": row[1], "money": row[2]}
+
 def buy_pinball_item(user_id, item_type, x, y, price):
     """Zkontroluje peníze, odečte je a vloží předmět."""
     with connect() as con:

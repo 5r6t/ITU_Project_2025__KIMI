@@ -1,5 +1,5 @@
 /*
-
+Model for klondike solitaire game
 Author: Jaroslav Mervart
 */
 

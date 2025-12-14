@@ -1,3 +1,7 @@
+/*
+Model for saving/loading solitaire progress
+Author: Jaroslav Mervart
+*/
 import axios from "axios";
 
 const API = axios.create({

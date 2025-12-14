@@ -2,7 +2,6 @@
 Model for scene inside main menu
 Author: Jaroslav Mervart
 */
-
 import kitchen_icon from "../assets/scene/kitchen.svg";
 import games_icon from "../assets/scene/games.svg"
 import bedroom_icon from "../assets/scene/bedroom.svg"

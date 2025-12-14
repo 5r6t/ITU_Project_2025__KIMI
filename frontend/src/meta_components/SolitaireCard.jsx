@@ -1,3 +1,7 @@
+/*
+Component for card rendering in solitaire
+Author: Jaroslav Mervart
+*/
 import deckSprite from "../assets/deck_split_ready.svg";
 import "../styles/Solitaire.css";
 
@@ -34,6 +38,7 @@ export default function SolitaireCard({
                     <div className="card-back__label">BACK</div>
                 </div>
             ) : card ? (
+                // coords x=0 y=0 width=363 height=544
                 <svg viewBox="0 0 363 544" className="card-svg" aria-label={label}>
                     <use href={`${deckSprite}#${card.spriteId}`} />
                 </svg>

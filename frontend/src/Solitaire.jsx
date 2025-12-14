@@ -1,16 +1,23 @@
+/*
+Klondike Solitaire game visual component
+Author: Jaroslav Mervart
+*/
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "./meta_components/Header";
 import SolitaireCard from "./meta_components/SolitaireCard";
 import { createSolitaireController } from "./controllers/solitaireController";
 import saveIcon from "./assets/save.svg";
+import confetti from "canvas-confetti";
 import "./styles/Solitaire.css";
 
 export default function Solitaire() {
     const navigate = useNavigate();
+    // React state: game snapshot from controller and drag highlight
     const [state, setState] = useState(null);
     const [dragTarget, setDragTarget] = useState(null);
     const controllerRef = useRef(null);
+    const winFiredRef = useRef(false);
 
     if (!controllerRef.current) {
         controllerRef.current = createSolitaireController(setState);
@@ -22,6 +29,28 @@ export default function Solitaire() {
         const id = setInterval(() => ctrl.autoSave(), 30000);
         return () => clearInterval(id);
     }, []);
+
+    // Fire confetti when all cards are in foundations
+    useEffect(() => {
+        if (!state) return;
+        const totalFoundations = Object.values(state.foundations || {}).reduce(
+            (sum, pile) => sum + (pile?.length || 0),
+            0
+        );
+        if (totalFoundations === 52 && !winFiredRef.current) {
+            winFiredRef.current = true;
+            const duration = 1500;
+            const end = Date.now() + duration;
+            (function frame() {
+                confetti({ particleCount: 12, angle: 60, spread: 65, origin: { x: 0, y: 0.6 } });
+                confetti({ particleCount: 12, angle: 120, spread: 65, origin: { x: 1, y: 0.6 } });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            })();
+        }
+        if (totalFoundations < 52) {
+            winFiredRef.current = false;
+        }
+    }, [state]);
 
     const handleClose = () => navigate("/");
 
@@ -40,6 +69,7 @@ export default function Solitaire() {
     const wasteTop = waste[waste.length - 1];
     const isWasteSelected = selection?.source === "waste";
 
+    // Drag helpers: serialize/allow drops
     const parsePayload = (e) => {
         try {
             const raw = e.dataTransfer.getData("application/json");
@@ -70,6 +100,7 @@ export default function Solitaire() {
         setDragTarget(null);
     };
 
+    // One foundation slot (claim suit on first Ace drop)
     const renderFoundation = (slotIndex) => {
         const slotSuit = foundationSlots[slotIndex] || null;
         const pile = slotSuit ? foundations[slotSuit] || [] : [];
@@ -104,6 +135,7 @@ export default function Solitaire() {
         <div>
             <Header title="Solitaire" onClose={handleClose}>
                 <div className="sol-header-actions">
+                    {/* Manual save button with status */}
                     <button
                         className="sol-button"
                         onClick={ctrl.manualSave}
@@ -117,6 +149,7 @@ export default function Solitaire() {
             </Header>
             <div className="solimain">
                 <div className="sol-controls">
+                    {/* Top controls: new deal + status text */}
                     <button className="sol-button" onClick={ctrl.reset}>
                         New Deal
                     </button>
@@ -125,14 +158,16 @@ export default function Solitaire() {
 
                 <div className="sol-top-row">
                     <div className="stock-area">
+                        {/* Stock pile: click to draw */}
                         <div className="stock-slot" onClick={ctrl.drawFromStock}>
                             {stockCount > 0 ? (
                                 <SolitaireCard faceDown card={{}} />
                             ) : (
-                                <div className="sol-empty">Empty</div>
+                                <div className="sol-empty">Empty - Click to turn over</div>
                             )}
                             <div className="stock-count">{stockCount}</div>
                         </div>
+                        {/* Waste pile: top draggable */}
                         <div
                             className="waste-slot"
                             onClick={ctrl.handleWasteClick}
@@ -161,9 +196,11 @@ export default function Solitaire() {
                         </div>
                     </div>
 
+                    {/* Foundations row */}
                     <div className="foundations">{[0, 1, 2, 3].map(renderFoundation)}</div>
                 </div>
 
+                {/* Tableau columns with drag/drop */}
                 <div className="tableau">
                     {tableau.map((pile, pileIndex) => (
                         <div
@@ -178,7 +215,7 @@ export default function Solitaire() {
                             onDragEnter={() => setDragTarget({ type: "tableau", index: pileIndex })}
                             onDragLeave={() => setDragTarget(null)}
                         >
-                            {pile.length === 0 && <div className="sol-empty">Empty</div>}
+                            {pile.length === 0 && <div className="sol-empty">Empty tableau</div>}
                             {pile.map((card, cardIndex) => (
                                 <div
                                     key={card.id}
