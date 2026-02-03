@@ -99,3 +99,6 @@ http://localhost:5173
         Utils.css (Jaroslav Mervart)
         Wallball.css (Pavel Hýža)
 ```
+
+# Final evaluation (including documentation and others)
+47 - 50 points
