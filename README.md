@@ -26,13 +26,13 @@ GUI oriented project from ITU (User Interface Programming) class
 ## 3) Open in browser
 http://localhost:5173
 
-## Screenshots
-
-### Breaker
-![Breaker](pictures/breaker.png)
+# Screenshots
 
 ### Main Menu
 ![Main Menu](pictures/main_menu.png)
+
+### Breaker
+![Breaker](pictures/breaker.png)
 
 ### Pinball
 ![Pinball](pictures/Pinball.png)
@@ -40,8 +40,8 @@ http://localhost:5173
 ### Pizza
 ![Pizza](pictures/pizza.png)
 
-### Solitaire Menu
-![Solitaire Menu](pictures/solitaire_menu.png)
+### Solitaire
+![Solitaire](pictures/solitaire_menu.png)
 
 ### Wallball
 ![Wallball](pictures/Wallball.png)
