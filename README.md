@@ -1,30 +1,144 @@
-# ITU_Project_2025
-GUI oriented project from ITU (User Interface Programming) class 
+# Kimi - Digital Pet (ITU_Project_2025)
+GUI-oriented project created for the **ITU (User Interface Programming)** class.
+
+The project consists of:
+- Backend – Python + Flask API
+- Frontend – React application (Vite dev server)
+
+---
+
+# System Requirements
+- Windows 10 or Windows 11
+- Internet connection (for installing dependencies)
+- Terminal / Command Prompt / PowerShell
+
+---
+
+# Design
+
+The project documentation includes the following design files:
+
+- [Design Proposal](documentation/design_proposal.pdf) – initial design concept.  
+- [Final Design](documentation/design_final.pdf) – finalized design after implementation.
+
+---
 
 # Dependencies
-- Win10/11
+
 ## Python (3.10+)
-- download https://www.python.org/downloads/windows/
-- Check "Add Python to PATH" during install
-- Backend `pip install flask flask-cors`
+Required for running the backend server.
+
+1. Download Python for Windows  
+   https://www.python.org/downloads/windows/
+
+2. Run the installer.
+
+3. Important: during installation check the option  
+   Add Python to PATH
+
+4. Verify installation:
+   ```
+   python --version
+   ```
+
+5. Install required backend libraries:
+   ```
+   pip install flask flask-cors
+   ```
+
+---
+
 ## Node.js
-- download https://nodejs.org/en/download
-- installer should add `npm` to PATH
-- general libs `npm install` inside frontend folder
-- ~~HTTP `npm install axios`~~
-- ~~`npm install react-router-dom`~~
+Required for running the React frontend.
 
-# ~~Create React project with Vite~~
-~~`npm create vite@latest frontend -- --template react`~~
-## 1) Run Backend
-`cd backend`
-`python server.py`
-## 2) Run Frontend (React dev server)
-`cd frontend`
-`npm run dev`
+1. Download Node.js  
+   https://nodejs.org/en/download
 
-## 3) Open in browser
+2. Install using the official installer.
+
+3. The installer should automatically add Node.js and npm to PATH.
+
+4. Verify installation:
+   ```
+   node --version
+   npm --version
+   ```
+
+5. Install frontend dependencies:
+
+   Navigate into the frontend directory:
+
+   ```
+   cd frontend
+   npm install
+   ```
+
+---
+
+## Optional - only needed when recreating the project environment
+```
+npm install axios
+npm install react-router-dom
+
+npm create vite@latest frontend -- --template react
+```
+---
+
+# Running the Project
+
+The backend and frontend must be started separately in two terminals.
+
+---
+
+## 1) Start Backend (Flask API)
+
+Navigate to the backend folder:
+
+```
+cd backend
+```
+
+Run the server:
+
+```
+python server.py
+```
+
+The backend should start on its configured local port.
+
+---
+
+## 2) Start Frontend (React Development Server)
+
+Open a second terminal and navigate to the frontend folder:
+
+```
+cd frontend
+```
+
+Start the development server:
+
+```
+npm run dev
+```
+
+Vite will compile the frontend and start a local development server.
+
+---
+
+## 3) Open in Browser
+
+After both servers are running, open (port may vary):
+
+```
 http://localhost:5173
+```
+---
+
+# Notes
+
+- Both backend and frontend must be running simultaneously.
+- If dependencies fail to install, ensure Python and Node.js were correctly added to PATH.
 
 # Screenshots
 
@@ -121,5 +235,5 @@ http://localhost:5173
         Wallball.css (Pavel Hýža)
 ```
 
-# Final evaluation (including documentation and others)
-47 - 50 points
+# Final Evaluation (covers documentation and all other criteria)
+47 – 50 points
